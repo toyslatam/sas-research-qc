@@ -1,0 +1,1 @@
+export { whispperResearchModule } from './config';

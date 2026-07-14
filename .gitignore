@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+web/.next/
+web/.next-web/
+*.tsbuildinfo
+
+# Entorno (mismo Supabase que Whispper — no subir secretos)
+.env
+.env.local
+.env.*.local
+web/.env.local
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Datos locales
+recordings/
+transcripts/
+data/
+*.db

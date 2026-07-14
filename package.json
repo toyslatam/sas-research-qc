@@ -1,0 +1,20 @@
+{
+  "name": "sas-research-qc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SAS RESEARCH — Control de Calidad (QC). App independiente; misma instancia Supabase que Whispper si se comparte proyecto.",
+  "workspaces": [
+    "backend",
+    "web",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev -w backend",
+    "dev:web": "node scripts/free-port.js 3000 && npm run dev -w web",
+    "dev": "npm run dev:backend",
+    "build": "npm run build -w shared && npm run build -w backend && npm run build -w web"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
