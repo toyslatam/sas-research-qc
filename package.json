@@ -11,8 +11,10 @@
   "scripts": {
     "dev:backend": "npm run dev -w backend",
     "dev:web": "node scripts/free-port.js 3000 && npm run dev -w web",
+    "dev:all": "echo Run backend and web in two terminals: npm run dev:backend / npm run dev:web",
     "dev": "npm run dev:backend",
-    "build": "npm run build -w shared && npm run build -w backend && npm run build -w web"
+    "build": "npm run build -w shared && npm run build -w backend && npm run build -w web",
+    "start:backend": "npm run start -w backend"
   },
   "engines": {
     "node": ">=18"

@@ -625,6 +625,15 @@ qcRouter.patch('/orgs/:orgId/surveys/:surveyId', async (req, res) => {
       res.status(400).json({ error: 'status inválido' });
       return;
     }
+    const nextStatus =
+      typeof body.status === 'string' && VALID_SURVEY_STATUS.has(body.status)
+        ? (body.status as
+            | 'pendiente'
+            | 'en_revision'
+            | 'aprobada'
+            | 'rechazada'
+            | 'en_auditoria')
+        : undefined;
     const updated = await qcRepo.updateSurvey(orgId, surveyId, {
       external_id: typeof body.external_id === 'string' ? body.external_id : undefined,
       respondent_code:
@@ -650,8 +659,7 @@ qcRouter.patch('/orgs/:orgId/surveys/:surveyId', async (req, res) => {
           : typeof body.collected_at === 'string'
             ? body.collected_at
             : undefined,
-      status:
-        typeof body.status === 'string' ? (body.status as typeof body.status & string) : undefined,
+      status: nextStatus,
     });
     if (!updated) {
       res.status(404).json({ error: 'Encuesta no encontrada' });

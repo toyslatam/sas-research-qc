@@ -1,0 +1,12 @@
+# Nixpacks / Railway — build monorepo y arranca solo el API QC
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build -w shared", "npm run build -w backend"]
+
+[start]
+cmd = "npm run start -w backend"

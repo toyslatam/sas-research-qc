@@ -40,15 +40,13 @@ Migraciones SQL (en orden): `qc_0_1` → `qc_11` en `database/supabase_migration
 
 ---
 
-## Paso 1 — Publicar en GitHub (otro remoto) — EN CURSO
+## Paso 1 — Publicar en GitHub (otro remoto) — HECHO
 
 - [x] Carpeta/app independiente `SAS_Research_QC`
 - [x] Sin desktop / pipeline Whispper en el entrypoint API
 - [x] Mismo `.env` Supabase (local; **no** commitear `.env`)
-- [ ] Crear repo en GitHub y `git push -u origin main`
-- [ ] README / CI según necesidad
-
-Nombre sugerido del remoto: `sas-research-qc` (o el que elijan en la org).
+- [x] Repo GitHub: https://github.com/toyslatam/sas-research-qc (privado)
+- [x] Push inicial a `main`
 
 ---
 
@@ -85,11 +83,11 @@ Hoy el backend confía en `userId` / `actorUserId` enviados por el cliente.
 
 - [x] Código QC en repo/carpeta propia
 - [x] `.gitignore` excluye `.env`
-- [ ] Remoto GitHub distinto a Whispper
-- [ ] Push inicial
+- [x] Remoto GitHub distinto a Whispper
+- [x] Push inicial
 - [ ] Smoke test desde este repo
 - [ ] QC-12 (JWT) antes de exponer a internet
 
 ---
 
-*Última actualización: extracción a `SAS_Research_QC` con Supabase compartido. Siguiente: push a GitHub + QC-12.*
+*Última actualización: publicado en https://github.com/toyslatam/sas-research-qc · Supabase compartido. Siguiente: smoke test + QC-12.*

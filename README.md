@@ -17,7 +17,8 @@ Aplicación **independiente** de Whispper para control de calidad de encuestas d
 ```bash
 # En la raíz de este repo
 cp .env.example .env
-# Completar SUPABASE_* con el mismo proyecto que Whispper (si compartes instancia)
+# Completar SUPABASE_* (mismo proyecto que Whispper si aplica)
+# PORT=4001 si Whispper ya usa 4000
 
 npm install
 npm run dev:backend
@@ -26,7 +27,11 @@ npm run dev:web
 ```
 
 - Web: http://localhost:3000  
-- API: http://localhost:4000  
+- API: http://localhost:4001  
+
+## Deploy (Vercel + Railway)
+
+Ver guía paso a paso: [`docs/DEPLOY.md`](docs/DEPLOY.md)
 
 ## Migraciones Supabase
 
