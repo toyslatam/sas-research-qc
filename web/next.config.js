@@ -1,7 +1,11 @@
 const path = require('path');
 
 // Cargar .env de la raíz del monorepo (local). En Vercel vienen del dashboard.
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+try {
+  require('dotenv').config({ path: path.join(__dirname, '../.env') });
+} catch {
+  // dotenv es opcional en Vercel (vars vienen del dashboard)
+}
 
 const backendUrl = (
   process.env.NEXT_PUBLIC_API_URL ||
@@ -20,6 +24,7 @@ const nextConfig = {
   reactStrictMode: true,
   // En Vercel debe ser `.next` (default). Localmente evitamos choques de caché.
   distDir: process.env.VERCEL ? '.next' : '.next-web',
+  transpilePackages: ['@whispper/shared'],
   env: {
     NEXT_PUBLIC_API_URL: backendUrl,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
