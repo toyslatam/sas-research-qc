@@ -11,22 +11,41 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
+  ...(process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+    : []),
 ];
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) return true;
+  if (/\.vercel\.app$/i.test(origin)) return true;
+  return false;
+}
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
-        callback(new Error(`CORS: origin "${origin}" not allowed`));
+        callback(null, false);
       }
     },
     credentials: true,
   }),
 );
 app.use(express.json({ limit: '2mb' }));
+
+// Raíz informativa — esta app es solo API (la web va en Vercel)
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'sas-research-qc-api',
+    status: 'ok',
+    hint: 'Esta URL es el backend. Abre la app en Vercel. Health: /api/health',
+    endpoints: ['/api/health', '/api/qc'],
+  });
+});
 
 app.use('/api/health', healthRouter);
 app.use('/api/qc', qcRouter);

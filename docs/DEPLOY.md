@@ -1,77 +1,39 @@
-# Deploy rápido — SAS RESEARCH QC
+# Deploy — SAS RESEARCH QC
 
-## Local (ya configurado)
+## Qué es cada URL
 
-- `.env` → `PORT=4001` y `NEXT_PUBLIC_API_URL=http://localhost:4001`
-- Whispper puede seguir en `4000`
+| URL | Qué es | Qué verás |
+|-----|--------|-----------|
+| `*.up.railway.app` | **Solo API** (Express) | `/` → JSON · `/api/health` → ok |
+| `*.vercel.app` | **Web** (Next.js) | Login + Control de Calidad |
 
-```powershell
-cd C:\Users\Research\Documents\TRABAJO\APP\SAS_Research_QC
-npm run dev:backend
-# otra terminal
-npm run dev:web
-```
+`Cannot GET /` en Railway era porque no había ruta `/`. Ya responde JSON.
 
 ---
 
-## Producción: Railway (API) + Vercel (Web)
+## Variables obligatorias en Vercel
 
-Repo: https://github.com/toyslatam/sas-research-qc  
-Supabase: el **mismo** proyecto.
-
-### A) Railway — API
-
-1. Entra a https://railway.app → **New Project** → **Deploy from GitHub**
-2. Autoriza y elige `toyslatam/sas-research-qc`
-3. En el servicio, **Variables** (Settings → Variables):
+Settings → Environment Variables (Production + Preview):
 
 | Variable | Valor |
 |----------|--------|
-| `SUPABASE_URL` | (igual que .env local) |
-| `SUPABASE_SERVICE_ROLE_KEY` | (igual) |
-| `SUPABASE_ANON_KEY` | (igual) |
+| `NEXT_PUBLIC_API_URL` | `https://web-production-24104.up.railway.app` (sin `/` final) |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
+
+**Root Directory:** `web`  
+Después de guardar → **Redeploy**.
+
+## Variables en Railway
+
+| Variable | Valor |
+|----------|--------|
+| `SUPABASE_URL` | mismo |
+| `SUPABASE_SERVICE_ROLE_KEY` | service role |
+| `SUPABASE_ANON_KEY` | anon |
 | `NODE_ENV` | `production` |
-| `ALLOWED_ORIGINS` | `https://TU-PROYECTO.vercel.app` (lo actualizas cuando tengas Vercel) |
-| `GOOGLE_SHEETS_ENABLED` | `false` (o true + credenciales) |
 
-4. Settings → **Generate Domain** → copia URL, ej. `https://sas-research-qc-production.up.railway.app`
-5. Prueba: `https://TU-URL.up.railway.app/api/health`
+## Comprobar
 
-El `nixpacks.toml` / `railway.json` ya definen build + `npm run start -w backend`.
-
-### B) Vercel — Web
-
-1. https://vercel.com/new → Import `toyslatam/sas-research-qc`
-2. **Root Directory:** `web` (Edit → `web`)
-3. Framework: Next.js (auto)
-4. **Environment Variables:**
-
-| Variable | Valor |
-|----------|--------|
-| `NEXT_PUBLIC_API_URL` | URL de Railway **sin** `/` final |
-| `NEXT_PUBLIC_SUPABASE_URL` | mismo Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | misma anon key |
-| `SUPABASE_URL` | mismo (para next.config) |
-| `SUPABASE_ANON_KEY` | misma |
-
-5. Deploy → copia dominio `https://….vercel.app`
-6. Vuelve a Railway y actualiza `ALLOWED_ORIGINS` con ese dominio
-
-### C) Supabase Auth
-
-Authentication → URL Configuration:
-
-- **Site URL:** `https://….vercel.app`
-- **Redirect URLs:**  
-  - `https://….vercel.app/auth/callback`  
-  - `https://….vercel.app/reset-password`  
-  - (deja también localhost para desarrollo)
-
----
-
-## Orden recomendado
-
-1. Railway primero (obtener URL API)  
-2. Vercel con esa URL en `NEXT_PUBLIC_API_URL`  
-3. Ajustar Auth + `ALLOWED_ORIGINS`  
-4. Abrir Vercel → login → `/m/qc`
+1. `https://web-production-24104.up.railway.app/api/health`
+2. `https://TU-APP.vercel.app`
