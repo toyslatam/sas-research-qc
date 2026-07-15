@@ -17,63 +17,13 @@ import {
   updateConfiguredReport,
 } from '@/lib/api';
 import { downloadReportRows } from '@/lib/exportConfiguredReport';
+import {
+  STEP_META,
+  StepBlockEditor,
+  defaultConfigFor,
+} from '@/components/informes/StepBlockEditor';
 
 type Tab = 'generar' | 'configurar';
-
-const STEP_META: Record<ReportStepType, { label: string; hint: string }> = {
-  read_google_sheets: {
-    label: 'Leer Google Sheets',
-    hint: 'Trae las filas de la hoja origen',
-  },
-  filter_columns: {
-    label: 'Filtrar columnas',
-    hint: 'Deja solo filas que cumplan valores (ej. Estado = Aprobado)',
-  },
-  lookup_match: {
-    label: 'Buscar coincidencia',
-    hint: 'Busca un valor en otra hoja',
-  },
-  cross_sheet: {
-    label: 'Cruzar hojas',
-    hint: 'Une datos entre dos hojas (como Power Query)',
-  },
-  update_columns: {
-    label: 'Actualizar columnas',
-    hint: 'Modifica valores de columnas existentes',
-  },
-  add_columns: {
-    label: 'Agregar columnas',
-    hint: 'Crea columnas nuevas en el resultado',
-  },
-  delete_records: {
-    label: 'Eliminar registros',
-    hint: 'Quita filas según una condición',
-  },
-  send_email: {
-    label: 'Enviar correo',
-    hint: 'Notifica el resultado por email',
-  },
-  save_pdf: {
-    label: 'Guardar PDF',
-    hint: 'Genera un PDF del resultado',
-  },
-  call_openai: {
-    label: 'Llamar a IA',
-    hint: 'Usa OpenAI sobre las filas',
-  },
-  call_api: {
-    label: 'Llamar API',
-    hint: 'Consulta un endpoint externo',
-  },
-  custom_javascript: {
-    label: 'JavaScript personalizado',
-    hint: 'Lógica avanzada (admin)',
-  },
-  save_history: {
-    label: 'Guardar historial',
-    hint: 'Registra la ejecución',
-  },
-};
 
 const STEP_TYPES = Object.keys(STEP_META) as ReportStepType[];
 
@@ -82,9 +32,10 @@ function newStep(type: ReportStepType): ReportStep {
     id: `s-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     type,
     label: STEP_META[type].label,
-    config: {},
+    config: defaultConfigFor(type),
   };
 }
+
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -529,13 +480,17 @@ export default function InformesModulePage() {
               </form>
 
               <div>
-                <p className="text-xs font-semibold mb-2">Agregar bloque</p>
+                <p className="text-xs font-semibold mb-1">Agregar bloque</p>
+                <p className="text-[11px] text-[var(--text-muted)] mb-2">
+                  Al agregarlo verás indicaciones y campos para armar la plantilla (columnas, valores,
+                  hoja auxiliar…).
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {STEP_TYPES.map((t) => (
                     <button
                       key={t}
                       type="button"
-                      title={STEP_META[t].hint}
+                      title={STEP_META[t].howTo}
                       onClick={() => setSteps((s) => [...s, newStep(t)])}
                       className="px-2 py-1 rounded border border-[var(--border-subtle)] text-[11px] hover:bg-[var(--bg-hover)]"
                     >
@@ -545,28 +500,17 @@ export default function InformesModulePage() {
                 </div>
               </div>
 
-              <ol className="space-y-2">
+              <ol className="space-y-3">
                 {steps.map((step, idx) => (
-                  <li
+                  <StepBlockEditor
                     key={step.id}
-                    className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-hover)] p-2 text-xs flex items-start justify-between gap-2"
-                  >
-                    <div>
-                      <p>
-                        {idx + 1}. {step.label}
-                      </p>
-                      <p className="text-[var(--text-muted)] mt-0.5">
-                        {STEP_META[step.type]?.hint ?? step.type}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="text-rose-300 shrink-0"
-                      onClick={() => setSteps((s) => s.filter((x) => x.id !== step.id))}
-                    >
-                      Quitar
-                    </button>
-                  </li>
+                    step={step}
+                    index={idx}
+                    onChange={(next) =>
+                      setSteps((list) => list.map((s) => (s.id === next.id ? next : s)))
+                    }
+                    onRemove={() => setSteps((list) => list.filter((s) => s.id !== step.id))}
+                  />
                 ))}
                 {steps.length === 0 && (
                   <p className="text-xs text-[var(--text-muted)]">

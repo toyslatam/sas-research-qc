@@ -270,10 +270,22 @@ const processRegistry: Record<string, Runner> = {
     const dateColumn = String(cfg.date_column ?? 'Fecha');
     let rows: Record<string, unknown>[] = [];
 
+    const parseValues = (raw: unknown): string[] => {
+      if (Array.isArray(raw)) return raw.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+      return String(raw ?? '')
+        .split(',')
+        .map((v) => v.trim().toLowerCase())
+        .filter(Boolean);
+    };
+
     for (const step of steps) {
       messages.push(`Paso: ${step.label} (${step.type})`);
+      const sc = step.config ?? {};
+
       if (step.type === 'read_google_sheets') {
-        rows = await readSheet(report.source_spreadsheet_id, report.source_sheet || 'Sheet1');
+        const sheet =
+          String(sc.sheet_name ?? '').trim() || report.source_sheet || 'Sheet1';
+        rows = await readSheet(report.source_spreadsheet_id, sheet);
         if (options.dateFrom || options.dateTo) {
           messages.push(
             `Filtrar por fecha (${dateColumn}): ${options.dateFrom || '…'} → ${options.dateTo || '…'}`,
@@ -281,21 +293,55 @@ const processRegistry: Record<string, Runner> = {
           rows = filterRowsByDateRange(rows, dateColumn, options.dateFrom, options.dateTo);
         }
       } else if (step.type === 'filter_columns') {
-        const column = String(step.config.column ?? '');
-        const values = Array.isArray(step.config.values)
-          ? step.config.values.map((v) => String(v).toLowerCase())
-          : [];
+        const column = String(sc.column ?? '');
+        const values = parseValues(sc.values);
         if (column && values.length) {
           rows = rows.filter((r) =>
             values.includes(String((r as SheetRow)[column] ?? '').toLowerCase()),
           );
         }
+      } else if (step.type === 'cross_sheet' || step.type === 'lookup_match') {
+        const lookupSheet = String(sc.lookup_sheet ?? 'Localizaciones');
+        const sourceKey = String(sc.source_key ?? 'Localización');
+        const lookupKey = String(sc.lookup_key ?? sourceKey);
+        const lookupRows = await readSheet(report.source_spreadsheet_id, lookupSheet);
+        const map = new Map<string, SheetRow>();
+        for (const lr of lookupRows) {
+          const key = String(lr[lookupKey] ?? '').trim().toUpperCase();
+          if (key && !map.has(key)) map.set(key, lr);
+        }
+        rows = rows.map((r) => {
+          const key = String(r[sourceKey] ?? '').trim().toUpperCase();
+          const match = key ? map.get(key) : undefined;
+          return match ? { ...r, ...match, _matched: true } : { ...r, _matched: false };
+        });
+      } else if (step.type === 'update_columns') {
+        const column = String(sc.column ?? '');
+        const value = String(sc.value ?? '');
+        if (column) rows = rows.map((r) => ({ ...r, [column]: value }));
+      } else if (step.type === 'add_columns') {
+        const column = String(sc.column ?? '');
+        const value = String(sc.value ?? '');
+        if (column) rows = rows.map((r) => ({ ...r, [column]: r[column] ?? value }));
+      } else if (step.type === 'delete_records') {
+        const column = String(sc.column ?? '');
+        const values = parseValues(sc.values);
+        const emptyOnly = Boolean(sc.empty_only);
+        if (column) {
+          rows = rows.filter((r) => {
+            const cell = String(r[column] ?? '').trim();
+            if (emptyOnly) return cell !== '';
+            if (!values.length) return true;
+            return !values.includes(cell.toLowerCase());
+          });
+        }
       } else if (step.type === 'save_history') {
         messages.push('Historial registrado');
+      } else {
+        messages.push(`Bloque ${step.type} configurado (sin acción runtime aún)`);
       }
     }
 
-    // Si no hay bloques de lectura, leer origen por defecto
     if (!steps.some((s) => s.type === 'read_google_sheets') && report.source_spreadsheet_id) {
       messages.push('Leer hoja origen (sin bloque explícito)');
       rows = await readSheet(report.source_spreadsheet_id, report.source_sheet || 'Sheet1');
@@ -321,7 +367,6 @@ const processRegistry: Record<string, Runner> = {
     };
   },
 };
-
 export async function executeConfiguredReport(
   report: ConfiguredReport,
   options: ReportRunParams = {},
