@@ -37,7 +37,7 @@ Lo correcto es ver algo como:
 
 | Variable | Valor |
 |----------|--------|
-| `NEXT_PUBLIC_API_URL` | `https://powerbiresearch.online` o tu Railway (sin `/` final) |
+| `NEXT_PUBLIC_API_URL` | `https://powerbiresearch.online` (con `https://`, sin `/` final) |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
 

@@ -7,11 +7,28 @@ try {
   // dotenv es opcional en Vercel (vars vienen del dashboard)
 }
 
-const backendUrl = (
+function normalizeBackendUrl(raw) {
+  const trimmed = String(raw || '')
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\/$/, '');
+  if (!trimmed) return '';
+  if (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('/')
+  ) {
+    return trimmed;
+  }
+  // Si pegaron el host sin protocolo (ej. powerbiresearch.online)
+  return `https://${trimmed}`;
+}
+
+const backendUrl = normalizeBackendUrl(
   process.env.NEXT_PUBLIC_API_URL ||
-  process.env.BACKEND_URL ||
-  'http://localhost:4001'
-).replace(/\/$/, '');
+    process.env.BACKEND_URL ||
+    'http://localhost:4001',
+);
 
 process.env.NEXT_PUBLIC_SUPABASE_URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
@@ -31,7 +48,9 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
   async rewrites() {
-    if (!backendUrl) return [];
+    if (!backendUrl || (!backendUrl.startsWith('http://') && !backendUrl.startsWith('https://'))) {
+      return [];
+    }
     return [
       {
         source: '/api/:path*',
