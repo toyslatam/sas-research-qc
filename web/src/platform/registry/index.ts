@@ -1,11 +1,25 @@
+import { whispperResearchModule } from '@/modules/whispper-research/config';
+import {
+  configuredReportsModule,
+  projectsModule,
+} from '@/modules/catalog/configs';
 import { qcModule } from '@/modules/qc/config';
 import type { ModuleConfig, ResolvedModule } from '@/platform/types/module';
 
 /**
- * Registry SAS RESEARCH QC — solo Control de Calidad.
- * (App separada de Whispper; mismo Supabase si se comparte proyecto.)
+ * Registry completo SAS RESEARCH.
+ * Misma plataforma modular que Whispper (Research, Proyectos, Informes + QC).
+ * Whispper_App no se modifica; esta es la app web desplegable.
  */
-export const moduleRegistry: ModuleConfig[] = [qcModule];
+export const moduleRegistry: ModuleConfig[] = [
+  whispperResearchModule,
+  projectsModule,
+  configuredReportsModule,
+  qcModule,
+  // IA y Propuestas deshabilitados del launcher (rutas /m/ia y /m/propuestas siguen existiendo)
+  // aiModule,
+  // proposalsModule,
+];
 
 export function getModuleById(id: string): ModuleConfig | undefined {
   return moduleRegistry.find((m) => m.id === id);

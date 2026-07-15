@@ -1,7 +1,17 @@
 import cors from 'cors';
 import express from 'express';
+import fs from 'fs';
 import { config } from './config';
+import { aiRouter } from './routes/ai';
+import { adminRouter } from './routes/admin';
+import { configuredReportsRouter } from './routes/configuredReports';
+import { dashboardRouter } from './routes/dashboard';
+import { finalAnalysisRouter } from './routes/finalAnalysis';
 import { healthRouter } from './routes/health';
+import { interviewsRouter } from './routes/interviews';
+import { moduleProjectsRouter } from './routes/moduleProjects';
+import { moduleProposalsRouter } from './routes/moduleProposals';
+import { projectsRouter } from './routes/projects';
 import { qcRouter } from './routes/qc';
 
 const app = express();
@@ -37,18 +47,38 @@ app.use(
 );
 app.use(express.json({ limit: '2mb' }));
 
-// Raíz informativa — esta app es solo API (la web va en Vercel)
 app.get('/', (_req, res) => {
   res.json({
-    service: 'sas-research-qc-api',
+    service: 'sas-research-api',
     status: 'ok',
     hint: 'Esta URL es el backend. Abre la app en Vercel. Health: /api/health',
-    endpoints: ['/api/health', '/api/qc'],
+    endpoints: [
+      '/api/health',
+      '/api/projects',
+      '/api/module-projects',
+      '/api/module-proposals',
+      '/api/configured-reports',
+      '/api/qc',
+      '/api/interviews',
+      '/api/dashboard',
+      '/api/final-analysis',
+      '/api/ai',
+      '/api/admin',
+    ],
   });
 });
 
 app.use('/api/health', healthRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/admin', adminRouter);
+app.use('/api/projects', projectsRouter);
+app.use('/api/module-projects', moduleProjectsRouter);
+app.use('/api/module-proposals', moduleProposalsRouter);
+app.use('/api/configured-reports', configuredReportsRouter);
 app.use('/api/qc', qcRouter);
+app.use('/api/interviews', interviewsRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api/final-analysis', finalAnalysisRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
@@ -56,6 +86,9 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(config.port, () => {
-  console.log(`SAS RESEARCH QC API en http://localhost:${config.port}`);
+  for (const dir of [config.paths.recordings, config.paths.transcripts]) {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  }
+  console.log(`SAS RESEARCH API en http://localhost:${config.port}`);
   console.log(`Supabase URL: ${config.supabase.url || '⚠ no configurada'}`);
 });

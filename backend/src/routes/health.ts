@@ -5,7 +5,7 @@ export const healthRouter = Router();
 healthRouter.get('/', (_req, res) => {
   res.json({
     status: 'ok',
-    service: 'sas-research-qc-api',
+    service: 'sas-research-api',
     timestamp: new Date().toISOString(),
   });
 });

@@ -1,11 +1,13 @@
-# Deploy — SAS RESEARCH QC
+# Deploy — SAS RESEARCH (plataforma completa + QC)
 
 ## Qué es cada URL
 
 | URL | Qué es | Qué verás |
 |-----|--------|-----------|
-| Railway / `powerbiresearch.online` | **Solo API** (Express) | `/` → JSON · `/api/health` → ok |
-| `*.vercel.app` | **Web** (Next.js) | Login + Control de Calidad |
+| Railway / `powerbiresearch.online` | **API** (Express) | Research, proyectos, informes, QC… |
+| `*.vercel.app` | **Web** (Next.js) | Launcher con todos los módulos |
+
+Whispper_App (desktop/local) no se toca; esta es la versión web desplegable.
 
 ---
 
