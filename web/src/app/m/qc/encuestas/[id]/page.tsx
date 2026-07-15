@@ -58,7 +58,7 @@ export default function QcEncuestaDetailPage({ params }: { params: { id: string 
   const [evUrl, setEvUrl] = useState('');
   const [evNotes, setEvNotes] = useState('');
   const [evType, setEvType] = useState<QcEvidenceType>('link');
-  const [evStage, setEvStage] = useState<string>('');
+  const [evStage, setEvStage] = useState<QcReviewStageType | ''>('');
   const [evFile, setEvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
@@ -355,7 +355,7 @@ export default function QcEncuestaDetailPage({ params }: { params: { id: string 
           </select>
           <select
             value={evStage}
-            onChange={(e) => setEvStage(e.target.value)}
+            onChange={(e) => setEvStage((e.target.value || '') as QcReviewStageType | '')}
             className="rounded-xl bg-[var(--bg-input)] border border-[var(--border-subtle)] px-3 py-2 text-sm text-[var(--text-primary)]"
           >
             <option value="">Sin etapa</option>
