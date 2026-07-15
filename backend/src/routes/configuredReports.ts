@@ -114,7 +114,15 @@ configuredReportsRouter.patch('/:id', async (req, res) => {
 configuredReportsRouter.post('/:id/run', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const markProcessed = Boolean((req.body as { markProcessed?: boolean })?.markProcessed);
+    const body = (req.body ?? {}) as {
+      markProcessed?: boolean;
+      dateFrom?: string;
+      dateTo?: string;
+    };
+    const markProcessed = Boolean(body.markProcessed);
+    const dateFrom = typeof body.dateFrom === 'string' ? body.dateFrom.trim() : undefined;
+    const dateTo = typeof body.dateTo === 'string' ? body.dateTo.trim() : undefined;
+
     const report = await configuredReportRepo.getById(id);
     if (!report) {
       res.status(404).json({ error: 'Informe no encontrado' });
@@ -126,7 +134,11 @@ configuredReportsRouter.post('/:id/run', async (req, res) => {
       last_run_at: new Date().toISOString(),
     });
 
-    const result = await executeConfiguredReport(report, { markProcessed });
+    const result = await executeConfiguredReport(report, {
+      markProcessed,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    });
 
     const run = await configuredReportRepo.createRun({
       report_id: id,
@@ -148,7 +160,9 @@ configuredReportsRouter.post('/:id/run', async (req, res) => {
     await adminRepo.addAuditLog({
       action: 'report_run',
       entity: 'configured_reports',
-      detail: `Informe #${id} ejecutado (${result.processed} procesados)`,
+      detail: `Informe #${id} ejecutado (${result.processed} procesados)${
+        dateFrom || dateTo ? ` fechas ${dateFrom || '…'}→${dateTo || '…'}` : ''
+      }`,
     });
 
     res.json({ run, result });

@@ -403,12 +403,16 @@ export async function updateConfiguredReport(
 
 export async function runConfiguredReport(
   id: number,
-  markProcessed = false,
+  params: { markProcessed?: boolean; dateFrom?: string; dateTo?: string } = {},
 ): Promise<{ run: ConfiguredReportRun; result: Record<string, unknown> }> {
   const res = await fetch(apiUrl(`/api/configured-reports/${id}/run`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ markProcessed }),
+    body: JSON.stringify({
+      markProcessed: Boolean(params.markProcessed),
+      dateFrom: params.dateFrom || undefined,
+      dateTo: params.dateTo || undefined,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

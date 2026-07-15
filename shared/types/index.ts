@@ -284,6 +284,15 @@ export interface ReportStep {
   config: Record<string, unknown>;
 }
 
+/** Parámetros que el usuario elige al generar (no van en la plantilla). */
+export interface ReportRunParams {
+  markProcessed?: boolean;
+  /** YYYY-MM-DD */
+  dateFrom?: string;
+  /** YYYY-MM-DD */
+  dateTo?: string;
+}
+
 export interface ConfiguredReport {
   id: number;
   name: string;
@@ -291,6 +300,11 @@ export interface ConfiguredReport {
   status: ConfiguredReportStatus;
   source_spreadsheet_id: string;
   source_sheet: string;
+  /**
+   * Config de plantilla. Campos útiles:
+   * - date_column: columna del Sheet para filtrar por fechas al generar
+   * - output_columns?: string[] columnas del Excel final (opcional)
+   */
   configuration: Record<string, unknown>;
   steps: ReportStep[];
   process_key: string;

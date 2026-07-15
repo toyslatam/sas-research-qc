@@ -49,7 +49,7 @@ export const configuredReportsModule: ModuleConfig = {
   id: 'configured-reports',
   name: 'Informes Configurados',
   description:
-    'Automatizaciones de datos con Google Sheets, reglas configurables e historial de ejecuciones.',
+    'Elige fechas y descarga Excel estándar desde Google Sheets (plantillas con bloques).',
   icon: 'FileSpreadsheet',
   accent: 'sky',
   basePath: '/m/informes',
