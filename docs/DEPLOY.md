@@ -11,15 +11,27 @@
 
 ## Vercel (web) — configuración crítica
 
-**Root Directory:** `web`  
-(Settings → General → Root Directory)
+**Root Directory debe ser exactamente `web`.**  
+Settings → General → Root Directory → `web` → Save.
+
+Si en Build Logs ves esto, está mal configurado (está buildando el API):
+```
+> backend@1.0.0 build
+> tsc
+```
+
+Lo correcto es ver algo como:
+```
+> web@1.0.0 build
+> next build
+```
 
 **Build** (ya viene en `web/vercel.json`):
 - Install: `cd .. && npm install`
 - Build: `cd .. && npm run build -w shared && npm run build -w web`
 
 > Importante: con Root = `web`, el monorepo está en `..` (un nivel).  
-> `cd ../..` es incorrecto y rompe el deploy.
+> El API **no** se despliega en Vercel — va en Railway.
 
 ### Variables (Production + Preview)
 

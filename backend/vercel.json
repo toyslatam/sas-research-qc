@@ -1,0 +1,3 @@
+{
+  "buildCommand": "echo \"ERROR: En Vercel, Root Directory debe ser 'web' (no 'backend'). El API va en Railway.\" && exit 1"
+}
