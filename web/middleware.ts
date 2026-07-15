@@ -7,13 +7,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',
-    '/login',
-    '/forgot-password',
-    '/reset-password',
-    '/auth/callback',
-    '/profile/:path*',
-    '/m/:path*',
-    '/admin/:path*',
+    /*
+     * Protege toda la app excepto estáticos de Next.
+     * Sin sesión → /login antes de ver módulos.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

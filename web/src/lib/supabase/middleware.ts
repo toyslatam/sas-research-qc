@@ -9,14 +9,6 @@ function isAuthRoute(pathname: string): boolean {
   );
 }
 
-function isProtectedPlatformRoute(pathname: string): boolean {
-  if (pathname === '/') return true;
-  if (pathname.startsWith('/m/')) return true;
-  if (pathname.startsWith('/admin')) return true;
-  if (pathname.startsWith('/profile')) return true;
-  return false;
-}
-
 function getSupabasePublicEnv() {
   const url =
     process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
@@ -25,19 +17,62 @@ function getSupabasePublicEnv() {
   return { url: url.trim(), anonKey: anonKey.trim() };
 }
 
+/**
+ * Toda la app (módulos, home, legacy) exige sesión.
+ * Solo login / forgot / reset / callback son públicos.
+ */
 export async function updateSession(request: NextRequest) {
   const { url, anonKey } = getSupabasePublicEnv();
   const { pathname } = request.nextUrl;
 
-  if (!url || !anonKey) {
-    if (isProtectedPlatformRoute(pathname)) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = '/login';
-      loginUrl.searchParams.set('next', pathname);
-      loginUrl.searchParams.set('error', 'auth_not_configured');
-      return NextResponse.redirect(loginUrl);
+  if (isAuthRoute(pathname)) {
+    // Rutas públicas de auth: si ya hay sesión, mandar al launcher
+    if (!url || !anonKey) {
+      return NextResponse.next({ request });
     }
-    return NextResponse.next({ request });
+
+    let supabaseResponse = NextResponse.next({ request });
+    try {
+      const supabase = createServerClient(url, anonKey, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => {
+              request.cookies.set(name, value);
+            });
+            supabaseResponse = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) => {
+              supabaseResponse.cookies.set(name, value, options);
+            });
+          },
+        },
+      });
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user && pathname !== '/reset-password') {
+        const homeUrl = request.nextUrl.clone();
+        homeUrl.pathname = '/';
+        homeUrl.search = '';
+        return NextResponse.redirect(homeUrl);
+      }
+    } catch (err) {
+      console.error('[middleware] auth route session error:', err);
+    }
+    return supabaseResponse;
+  }
+
+  // Rutas protegidas (todo lo demás)
+  if (!url || !anonKey) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', pathname);
+    loginUrl.searchParams.set('error', 'auth_not_configured');
+    return NextResponse.redirect(loginUrl);
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -64,28 +99,19 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (isProtectedPlatformRoute(pathname) && !user) {
+    if (!user) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = '/login';
-      loginUrl.searchParams.set('next', pathname);
+      loginUrl.searchParams.set('next', pathname === '/' ? '/' : pathname);
       return NextResponse.redirect(loginUrl);
-    }
-
-    if (isAuthRoute(pathname) && user && pathname !== '/reset-password') {
-      const homeUrl = request.nextUrl.clone();
-      homeUrl.pathname = '/';
-      homeUrl.search = '';
-      return NextResponse.redirect(homeUrl);
     }
   } catch (err) {
     console.error('[middleware] supabase session error:', err);
-    if (isProtectedPlatformRoute(pathname)) {
-      const loginUrl = request.nextUrl.clone();
-      loginUrl.pathname = '/login';
-      loginUrl.searchParams.set('next', pathname);
-      loginUrl.searchParams.set('error', 'auth_session');
-      return NextResponse.redirect(loginUrl);
-    }
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', pathname);
+    loginUrl.searchParams.set('error', 'auth_session');
+    return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;

@@ -49,14 +49,11 @@ export function LoginForm() {
     return (
       <AuthShell
         title="Autenticación no configurada"
-        subtitle="Agrega SUPABASE_URL y SUPABASE_ANON_KEY (o NEXT_PUBLIC_*) en tu .env"
+        subtitle="Agrega NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY en Vercel (o .env) y redespliega."
       >
-        <Link
-          href="/"
-          className="block w-full text-center py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium transition-colors"
-        >
-          Volver al inicio
-        </Link>
+        <p className="text-sm text-[var(--text-muted)] text-center">
+          Sin auth no se puede entrar a los módulos.
+        </p>
       </AuthShell>
     );
   }
