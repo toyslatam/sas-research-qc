@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { Layers } from 'lucide-react';
 
 export function AuthShell({
