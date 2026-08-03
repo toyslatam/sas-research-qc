@@ -30,7 +30,7 @@ qcRouter.get('/permissions', async (_req, res) => {
 
 qcRouter.get('/orgs', async (req, res) => {
   try {
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -44,12 +44,13 @@ qcRouter.get('/orgs', async (req, res) => {
 
 qcRouter.post('/orgs', async (req, res) => {
   try {
-    const { name, slug, legal_name, userId } = req.body as Record<string, unknown>;
+    const { name, slug, legal_name } = req.body as Record<string, unknown>;
+    const userId = req.authUserId ?? '';
     if (typeof name !== 'string' || !name.trim()) {
       res.status(400).json({ error: 'name es requerido' });
       return;
     }
-    if (typeof userId !== 'string' || !userId) {
+    if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
     }
@@ -68,8 +69,9 @@ qcRouter.post('/orgs', async (req, res) => {
 qcRouter.patch('/orgs/:orgId', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const { name, legal_name, status, userId } = req.body as Record<string, unknown>;
-    if (typeof userId !== 'string' || !userId) {
+    const { name, legal_name, status } = req.body as Record<string, unknown>;
+    const userId = req.authUserId ?? '';
+    if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
     }
@@ -96,7 +98,7 @@ qcRouter.patch('/orgs/:orgId', async (req, res) => {
 qcRouter.get('/orgs/:orgId/members', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -116,8 +118,9 @@ qcRouter.get('/orgs/:orgId/members', async (req, res) => {
 qcRouter.post('/orgs/:orgId/members', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const { email, role_key, actorUserId } = req.body as Record<string, unknown>;
-    if (typeof actorUserId !== 'string' || !actorUserId) {
+    const { email, role_key } = req.body as Record<string, unknown>;
+    const actorUserId = req.authUserId ?? '';
+    if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
     }
@@ -146,12 +149,13 @@ qcRouter.patch('/orgs/:orgId/members/:memberId', async (req, res) => {
   try {
     const { orgId, memberId: memberIdRaw } = req.params;
     const memberId = parseInt(memberIdRaw, 10);
-    const { role_key, status, actorUserId } = req.body as Record<string, unknown>;
+    const { role_key, status } = req.body as Record<string, unknown>;
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(memberId)) {
       res.status(400).json({ error: 'memberId inválido' });
       return;
     }
-    if (typeof actorUserId !== 'string' || !actorUserId) {
+    if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
     }
@@ -182,7 +186,7 @@ qcRouter.patch('/orgs/:orgId/members/:memberId', async (req, res) => {
 qcRouter.get('/orgs/:orgId/clients', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -206,7 +210,7 @@ qcRouter.post('/orgs/:orgId/clients', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -239,7 +243,7 @@ qcRouter.patch('/orgs/:orgId/clients/:clientId', async (req, res) => {
     const { orgId, clientId: rawId } = req.params;
     const clientId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(clientId)) {
       res.status(400).json({ error: 'clientId inválido' });
       return;
@@ -276,8 +280,7 @@ qcRouter.delete('/orgs/:orgId/clients/:clientId', async (req, res) => {
   try {
     const { orgId, clientId: rawId } = req.params;
     const clientId = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(clientId)) {
       res.status(400).json({ error: 'clientId inválido' });
       return;
@@ -309,7 +312,7 @@ const VALID_QC_STATUS = new Set(['borrador', 'activo', 'en_pausa', 'cerrado']);
 qcRouter.get('/orgs/:orgId/projects', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -336,7 +339,7 @@ qcRouter.post('/orgs/:orgId/projects', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -387,7 +390,7 @@ qcRouter.patch('/orgs/:orgId/projects/:projectId', async (req, res) => {
     const { orgId, projectId: rawId } = req.params;
     const projectId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(projectId)) {
       res.status(400).json({ error: 'projectId inválido' });
       return;
@@ -451,8 +454,7 @@ qcRouter.delete('/orgs/:orgId/projects/:projectId', async (req, res) => {
   try {
     const { orgId, projectId: rawId } = req.params;
     const projectId = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(projectId)) {
       res.status(400).json({ error: 'projectId inválido' });
       return;
@@ -492,7 +494,7 @@ const VALID_REVIEW_STATUS = new Set(['aprobada', 'rechazada', 'observacion']);
 qcRouter.get('/orgs/:orgId/surveys', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -521,7 +523,7 @@ qcRouter.post('/orgs/:orgId/surveys', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -573,7 +575,7 @@ qcRouter.get('/orgs/:orgId/surveys/:surveyId', async (req, res) => {
   try {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId)) {
       res.status(400).json({ error: 'surveyId inválido' });
       return;
@@ -605,7 +607,7 @@ qcRouter.patch('/orgs/:orgId/surveys/:surveyId', async (req, res) => {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId)) {
       res.status(400).json({ error: 'surveyId inválido' });
       return;
@@ -675,8 +677,7 @@ qcRouter.delete('/orgs/:orgId/surveys/:surveyId', async (req, res) => {
   try {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId)) {
       res.status(400).json({ error: 'surveyId inválido' });
       return;
@@ -706,7 +707,7 @@ qcRouter.post('/orgs/:orgId/surveys/:surveyId/reviews/:stageType', async (req, r
     const { orgId, surveyId: rawId, stageType } = req.params;
     const surveyId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId)) {
       res.status(400).json({ error: 'surveyId inválido' });
       return;
@@ -749,7 +750,7 @@ qcRouter.get('/orgs/:orgId/surveys/:surveyId/events', async (req, res) => {
   try {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId) || !userId) {
       res.status(400).json({ error: 'surveyId y userId son requeridos' });
       return;
@@ -790,7 +791,7 @@ const VALID_ACTION = new Set(['flag', 'auto_observacion', 'auto_rechazar']);
 qcRouter.get('/orgs/:orgId/rules', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -823,7 +824,7 @@ qcRouter.post('/orgs/:orgId/rules', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -911,7 +912,7 @@ qcRouter.post('/orgs/:orgId/rules/seed-defaults', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -941,7 +942,7 @@ qcRouter.patch('/orgs/:orgId/rules/:ruleId', async (req, res) => {
     const { orgId, ruleId: rawId } = req.params;
     const ruleId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(ruleId)) {
       res.status(400).json({ error: 'ruleId inválido' });
       return;
@@ -1032,8 +1033,7 @@ qcRouter.delete('/orgs/:orgId/rules/:ruleId', async (req, res) => {
   try {
     const { orgId, ruleId: rawId } = req.params;
     const ruleId = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(ruleId) || !actorUserId) {
       res.status(400).json({ error: 'ruleId y actorUserId son requeridos' });
       return;
@@ -1058,7 +1058,7 @@ qcRouter.get('/orgs/:orgId/surveys/:surveyId/evaluate-rules', async (req, res) =
   try {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId) || !userId) {
       res.status(400).json({ error: 'surveyId y userId son requeridos' });
       return;
@@ -1084,7 +1084,7 @@ qcRouter.post('/orgs/:orgId/surveys/:surveyId/apply-rules', async (req, res) => 
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId) || !actorUserId) {
       res.status(400).json({ error: 'surveyId y actorUserId son requeridos' });
       return;
@@ -1116,7 +1116,7 @@ qcRouter.get('/orgs/:orgId/surveys/:surveyId/evidences', async (req, res) => {
   try {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId) || !userId) {
       res.status(400).json({ error: 'surveyId y userId son requeridos' });
       return;
@@ -1140,7 +1140,7 @@ qcRouter.post('/orgs/:orgId/surveys/:surveyId/evidences', async (req, res) => {
     const { orgId, surveyId: rawId } = req.params;
     const surveyId = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(surveyId)) {
       res.status(400).json({ error: 'surveyId inválido' });
       return;
@@ -1195,8 +1195,7 @@ qcRouter.post(
     try {
       const { orgId, surveyId: rawId } = req.params;
       const surveyId = parseInt(rawId, 10);
-      const actorUserId =
-        typeof req.body?.actorUserId === 'string' ? req.body.actorUserId : '';
+      const actorUserId = req.authUserId ?? '';
       if (!Number.isFinite(surveyId) || !actorUserId) {
         res.status(400).json({ error: 'surveyId y actorUserId son requeridos' });
         return;
@@ -1258,8 +1257,7 @@ qcRouter.delete('/orgs/:orgId/evidences/:evidenceId', async (req, res) => {
   try {
     const { orgId, evidenceId: rawId } = req.params;
     const evidenceId = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(evidenceId) || !actorUserId) {
       res.status(400).json({ error: 'evidenceId y actorUserId son requeridos' });
       return;
@@ -1287,7 +1285,7 @@ qcRouter.delete('/orgs/:orgId/evidences/:evidenceId', async (req, res) => {
 qcRouter.get('/orgs/:orgId/audit-logs', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1321,7 +1319,7 @@ const VALID_INT_STATUS = new Set(['inactive', 'active', 'error']);
 qcRouter.get('/orgs/:orgId/integrations', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1344,7 +1342,7 @@ qcRouter.post('/orgs/:orgId/integrations', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -1395,7 +1393,7 @@ qcRouter.patch('/orgs/:orgId/integrations/:id', async (req, res) => {
     const { orgId, id: rawId } = req.params;
     const id = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1447,8 +1445,7 @@ qcRouter.delete('/orgs/:orgId/integrations/:id', async (req, res) => {
   try {
     const { orgId, id: rawId } = req.params;
     const id = parseInt(rawId, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string' ? req.query.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1473,7 +1470,7 @@ qcRouter.get('/orgs/:orgId/integrations/:id/runs', async (req, res) => {
   try {
     const { orgId, id: rawId } = req.params;
     const id = parseInt(rawId, 10);
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !userId) {
       res.status(400).json({ error: 'id y userId son requeridos' });
       return;
@@ -1495,7 +1492,7 @@ qcRouter.post('/orgs/:orgId/integrations/:id/sync', async (req, res) => {
     const { orgId, id: rawId } = req.params;
     const id = parseInt(rawId, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1518,7 +1515,7 @@ qcRouter.post('/orgs/:orgId/integrations/:id/sync', async (req, res) => {
 qcRouter.get('/orgs/:orgId/dashboard', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1550,7 +1547,7 @@ const VALID_WEBHOOK_EVENTS = new Set([
 qcRouter.get('/orgs/:orgId/webhooks', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1572,7 +1569,7 @@ qcRouter.post('/orgs/:orgId/webhooks', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!actorUserId) {
       res.status(400).json({ error: 'actorUserId es requerido' });
       return;
@@ -1616,7 +1613,7 @@ qcRouter.patch('/orgs/:orgId/webhooks/:id', async (req, res) => {
     const orgId = req.params.orgId;
     const id = parseInt(req.params.id, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1658,12 +1655,7 @@ qcRouter.delete('/orgs/:orgId/webhooks/:id', async (req, res) => {
   try {
     const orgId = req.params.orgId;
     const id = parseInt(req.params.id, 10);
-    const actorUserId =
-      typeof req.query.actorUserId === 'string'
-        ? req.query.actorUserId
-        : typeof (req.body as { actorUserId?: string })?.actorUserId === 'string'
-          ? (req.body as { actorUserId: string }).actorUserId
-          : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1689,7 +1681,7 @@ qcRouter.post('/orgs/:orgId/webhooks/:id/test', async (req, res) => {
     const orgId = req.params.orgId;
     const id = parseInt(req.params.id, 10);
     const body = req.body as Record<string, unknown>;
-    const actorUserId = typeof body.actorUserId === 'string' ? body.actorUserId : '';
+    const actorUserId = req.authUserId ?? '';
     if (!Number.isFinite(id) || !actorUserId) {
       res.status(400).json({ error: 'id y actorUserId son requeridos' });
       return;
@@ -1730,7 +1722,7 @@ async function canReadQcReports(userId: string, orgId: string): Promise<boolean>
 qcRouter.get('/orgs/:orgId/reports/summary', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1766,7 +1758,7 @@ qcRouter.get('/orgs/:orgId/reports/summary', async (req, res) => {
 qcRouter.get('/orgs/:orgId/reports/export.csv', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1808,7 +1800,7 @@ qcRouter.get('/orgs/:orgId/reports/export.csv', async (req, res) => {
 qcRouter.get('/orgs/:orgId/reports/export.json', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;
@@ -1849,7 +1841,7 @@ qcRouter.get('/orgs/:orgId/reports/export.json', async (req, res) => {
 qcRouter.get('/orgs/:orgId/reports/exports', async (req, res) => {
   try {
     const orgId = req.params.orgId;
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : '';
+    const userId = req.authUserId ?? '';
     if (!userId) {
       res.status(400).json({ error: 'userId es requerido' });
       return;

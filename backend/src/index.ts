@@ -13,6 +13,7 @@ import { moduleProjectsRouter } from './routes/moduleProjects';
 import { moduleProposalsRouter } from './routes/moduleProposals';
 import { projectsRouter } from './routes/projects';
 import { qcRouter } from './routes/qc';
+import { requireQcAuth } from './middleware/qcAuth';
 
 const app = express();
 
@@ -75,7 +76,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/module-projects', moduleProjectsRouter);
 app.use('/api/module-proposals', moduleProposalsRouter);
 app.use('/api/configured-reports', configuredReportsRouter);
-app.use('/api/qc', qcRouter);
+app.use('/api/qc', requireQcAuth, qcRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/final-analysis', finalAnalysisRouter);
