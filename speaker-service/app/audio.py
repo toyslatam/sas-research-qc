@@ -13,16 +13,38 @@ class AudioTooShortError(Exception):
 
 
 def _load_mono(data: bytes, target_sr: int) -> np.ndarray:
-    """Carga audio de cualquier formato soportado por torchaudio, mono, a target_sr."""
-    import torch
-    import torchaudio
+    """
+    Carga audio a mono float32 y target_sr.
 
-    waveform, sr = torchaudio.load(io.BytesIO(data))  # [canales, muestras]
-    if waveform.shape[0] > 1:  # a mono promediando canales
-        waveform = waveform.mean(dim=0, keepdim=True)
+    Decodificación en dos niveles: soundfile para WAV/FLAC/OGG (sin dependencias
+    del sistema) y, si ese formato no lo soporta, torchaudio con backend ffmpeg
+    para los formatos comprimidos del teléfono (m4a/aac/mp3). La conversión de
+    frecuencia usa torchaudio.functional.resample, que es una operación de
+    tensores y no depende de ningún backend de audio.
+    """
+    import torch
+    import torchaudio.functional as AF
+
+    samples: np.ndarray
+    sr: int
+    try:
+        import soundfile as sf
+
+        audio, sr = sf.read(io.BytesIO(data), dtype="float32", always_2d=True)  # [frames, canales]
+        samples = audio.mean(axis=1).astype(np.float32)  # a mono
+    except Exception:
+        # Formatos comprimidos: requieren backend ffmpeg de torchaudio.
+        import torchaudio
+
+        waveform, sr = torchaudio.load(io.BytesIO(data))
+        if waveform.shape[0] > 1:
+            waveform = waveform.mean(dim=0, keepdim=True)
+        samples = waveform.squeeze(0).numpy().astype(np.float32)
+
     if sr != target_sr:
-        waveform = torchaudio.transforms.Resample(sr, target_sr)(waveform)
-    return waveform.squeeze(0).numpy().astype(np.float32)
+        tensor = torch.from_numpy(np.ascontiguousarray(samples))
+        samples = AF.resample(tensor, sr, target_sr).numpy().astype(np.float32)
+    return samples
 
 
 def _voiced_mask(samples: np.ndarray, sr: int, frame_ms: int = 30) -> np.ndarray:

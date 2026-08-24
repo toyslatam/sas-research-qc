@@ -25,7 +25,24 @@ class EcapaEmbeddingModel(EmbeddingModel):
             return
         # Import diferido: torch/speechbrain son pesados; no cargarlos si solo
         # se consulta /health o /compare.
+        import speechbrain.utils.fetching as sb_fetch
         from speechbrain.inference.speaker import EncoderClassifier
+        from speechbrain.utils.fetching import LocalStrategy
+
+        # En Windows los symlinks exigen privilegios de administrador (o Modo
+        # Desarrollador). SpeechBrain enlaza los archivos del modelo desde la
+        # caché de HuggingFace hacia `savedir` con SYMLINK por defecto, y el
+        # Pretrainer que carga los pesos no permite cambiarlo vía from_hparams.
+        # Se fuerza COPY parcheando el enlazador: es igual de correcto y no
+        # necesita permisos especiales. (En Linux/Docker esto es inocuo.)
+        if not getattr(sb_fetch, "_sas_force_copy", False):
+            _orig_link = sb_fetch.link_with_strategy
+
+            def _copy_only(src, dst, _strategy):  # noqa: ANN001
+                return _orig_link(src, dst, LocalStrategy.COPY)
+
+            sb_fetch.link_with_strategy = _copy_only
+            sb_fetch._sas_force_copy = True
 
         logger.info("Cargando modelo ECAPA '%s' (primera vez puede tardar)…", self.name)
         self._encoder = EncoderClassifier.from_hparams(
