@@ -1,0 +1,9 @@
+# Sesiones del navegador: contienen cookies de tu cuenta de empleador.
+# NUNCA deben salir de tu máquina.
+.sessions/
+
+# Reportes del spike: pueden contener datos de candidatos reales.
+reports/
+
+dist/
+node_modules/
