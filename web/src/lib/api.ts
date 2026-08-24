@@ -31,6 +31,13 @@ import type {
   QcWebhookEvent,
   QcReportExportLog,
   QcReportSummary,
+  QcRecruitCandidate,
+  QcRecruitContacto,
+  QcRecruitEtapa,
+  QcRecruitImportRow,
+  QcRecruitImportRun,
+  QcRecruitMunicipio,
+  QcRecruitPublicacion,
   Question,
   ReportStep,
 } from '@whispper/shared';
@@ -1201,4 +1208,344 @@ export async function downloadQcReport(
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ── QC-12: Seguimiento Encuestadores ────────────────────────────────────────
+
+export function listQcRecruitMunicipios(
+  orgId: string,
+  userId: string,
+): Promise<QcRecruitMunicipio[]> {
+  return fetchJson(
+    `/api/qc/orgs/${orgId}/recruit/municipios?userId=${encodeURIComponent(userId)}`,
+  );
+}
+
+export async function createQcRecruitMunicipio(
+  orgId: string,
+  payload: Partial<QcRecruitMunicipio> & { nombre: string; actorUserId: string },
+): Promise<QcRecruitMunicipio> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/municipios`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateQcRecruitMunicipio(
+  orgId: string,
+  id: number,
+  payload: Partial<QcRecruitMunicipio> & { actorUserId: string },
+): Promise<QcRecruitMunicipio> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/municipios/${id}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteQcRecruitMunicipio(
+  orgId: string,
+  id: number,
+  actorUserId: string,
+): Promise<void> {
+  const res = await apiFetch(
+    apiUrl(
+      `/api/qc/orgs/${orgId}/recruit/municipios/${id}?actorUserId=${encodeURIComponent(actorUserId)}`,
+    ),
+    { method: 'DELETE' },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+}
+
+export function listQcRecruitCandidates(
+  orgId: string,
+  userId: string,
+  filters?: { search?: string; etapa?: QcRecruitEtapa; municipioId?: number },
+): Promise<QcRecruitCandidate[]> {
+  const params = new URLSearchParams({ userId });
+  if (filters?.search) params.set('search', filters.search);
+  if (filters?.etapa) params.set('etapa', filters.etapa);
+  if (filters?.municipioId) params.set('municipioId', String(filters.municipioId));
+  return fetchJson(`/api/qc/orgs/${orgId}/recruit/candidates?${params}`);
+}
+
+export async function createQcRecruitCandidate(
+  orgId: string,
+  payload: Partial<QcRecruitCandidate> & { nombre: string; celular: string; actorUserId: string },
+): Promise<QcRecruitCandidate> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/candidates`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateQcRecruitCandidate(
+  orgId: string,
+  id: number,
+  payload: Partial<QcRecruitCandidate> & { actorUserId: string },
+): Promise<QcRecruitCandidate> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/candidates/${id}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteQcRecruitCandidate(
+  orgId: string,
+  id: number,
+  actorUserId: string,
+): Promise<void> {
+  const res = await apiFetch(
+    apiUrl(
+      `/api/qc/orgs/${orgId}/recruit/candidates/${id}?actorUserId=${encodeURIComponent(actorUserId)}`,
+    ),
+    { method: 'DELETE' },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+}
+
+export function listQcRecruitContactos(
+  orgId: string,
+  candidateId: number,
+  userId: string,
+): Promise<QcRecruitContacto[]> {
+  return fetchJson(
+    `/api/qc/orgs/${orgId}/recruit/candidates/${candidateId}/contactos?userId=${encodeURIComponent(userId)}`,
+  );
+}
+
+export async function changeQcRecruitCandidateStage(
+  orgId: string,
+  candidateId: number,
+  payload: { etapa: QcRecruitEtapa; comentario?: string; actorUserId: string },
+): Promise<QcRecruitCandidate> {
+  const res = await apiFetch(
+    apiUrl(`/api/qc/orgs/${orgId}/recruit/candidates/${candidateId}/etapa`),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function addQcRecruitContactComment(
+  orgId: string,
+  candidateId: number,
+  payload: { comentario: string; actorUserId: string },
+): Promise<QcRecruitContacto> {
+  const res = await apiFetch(
+    apiUrl(`/api/qc/orgs/${orgId}/recruit/candidates/${candidateId}/contactos`),
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export function listQcRecruitPublicaciones(
+  orgId: string,
+  userId: string,
+): Promise<QcRecruitPublicacion[]> {
+  return fetchJson(
+    `/api/qc/orgs/${orgId}/recruit/publicaciones?userId=${encodeURIComponent(userId)}`,
+  );
+}
+
+export async function createQcRecruitPublicacion(
+  orgId: string,
+  payload: Partial<QcRecruitPublicacion> & { titulo: string; actorUserId: string },
+): Promise<QcRecruitPublicacion> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/publicaciones`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateQcRecruitPublicacion(
+  orgId: string,
+  id: number,
+  payload: Partial<QcRecruitPublicacion> & { actorUserId: string },
+): Promise<QcRecruitPublicacion> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/publicaciones/${id}`), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteQcRecruitPublicacion(
+  orgId: string,
+  id: number,
+  actorUserId: string,
+): Promise<void> {
+  const res = await apiFetch(
+    apiUrl(
+      `/api/qc/orgs/${orgId}/recruit/publicaciones/${id}?actorUserId=${encodeURIComponent(actorUserId)}`,
+    ),
+    { method: 'DELETE' },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+}
+
+export async function importQcRecruitCandidates(
+  orgId: string,
+  payload: { rows: QcRecruitImportRow[]; source?: 'csv' | 'gmail'; actorUserId: string },
+): Promise<QcRecruitImportRun> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/import`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export function listQcRecruitImportRuns(
+  orgId: string,
+  userId: string,
+): Promise<QcRecruitImportRun[]> {
+  return fetchJson(
+    `/api/qc/orgs/${orgId}/recruit/import/runs?userId=${encodeURIComponent(userId)}`,
+  );
+}
+
+export interface QcRecruitGmailStatus {
+  connected: boolean;
+  email: string | null;
+}
+
+export function getQcRecruitGmailStatus(
+  orgId: string,
+  userId: string,
+): Promise<QcRecruitGmailStatus> {
+  return fetchJson(
+    `/api/qc/orgs/${orgId}/recruit/gmail/status?userId=${encodeURIComponent(userId)}`,
+  );
+}
+
+export async function getQcRecruitGmailAuthUrl(
+  orgId: string,
+  actorUserId: string,
+): Promise<{ url: string }> {
+  const res = await apiFetch(
+    apiUrl(`/api/qc/orgs/${orgId}/recruit/gmail/auth-url?userId=${encodeURIComponent(actorUserId)}`),
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function disconnectQcRecruitGmail(orgId: string, actorUserId: string): Promise<void> {
+  const res = await apiFetch(
+    apiUrl(
+      `/api/qc/orgs/${orgId}/recruit/gmail/connection?actorUserId=${encodeURIComponent(actorUserId)}`,
+    ),
+    { method: 'DELETE' },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+}
+
+export interface QcRecruitGmailMessagePreview {
+  id: string;
+  from: string;
+  subject: string;
+  date: string;
+  snippet: string;
+  cvUrl: string | null;
+  suggested: { nombre: string; celular: string; email: string; municipio: string };
+}
+
+export async function previewQcRecruitGmail(
+  orgId: string,
+  actorUserId: string,
+): Promise<{ messages: QcRecruitGmailMessagePreview[] }> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/gmail/preview`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ actorUserId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
+}
+
+export async function importQcRecruitGmailRows(
+  orgId: string,
+  payload: { rows: QcRecruitImportRow[]; actorUserId: string },
+): Promise<QcRecruitImportRun> {
+  const res = await apiFetch(apiUrl(`/api/qc/orgs/${orgId}/recruit/gmail/import`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || res.statusText);
+  }
+  return res.json();
 }

@@ -27,3 +27,9 @@ recordings/
 transcripts/
 data/
 *.db
+
+# Config local de Claude Code (no personal settings al repo)
+.claude/settings.local.json
+
+# Datos de negocio con PII: no van al historial de git
+docs/Seguimiento reclutamiento.xlsx

@@ -20,6 +20,7 @@ import {
   ScrollText,
   Plug,
   Webhook,
+  UserSearch,
 } from 'lucide-react';
 
 const iconMap: Record<string, LucideIcon> = {
@@ -43,6 +44,7 @@ const iconMap: Record<string, LucideIcon> = {
   ScrollText,
   Plug,
   Webhook,
+  UserSearch,
 };
 
 export function getModuleIcon(name: string): LucideIcon {

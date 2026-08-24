@@ -8,6 +8,7 @@ import { qcEvidencesRouter } from './evidences';
 import { qcIntegrationsRouter } from './integrations';
 import { qcWebhooksRouter } from './webhooks';
 import { qcReportsRouter } from './reports';
+import { qcRecruitRouter } from './recruit';
 
 /**
  * Router raíz de QC. Ensambla los sub-routers por dominio.
@@ -25,3 +26,4 @@ qcRouter.use(qcEvidencesRouter);
 qcRouter.use(qcIntegrationsRouter);
 qcRouter.use(qcWebhooksRouter);
 qcRouter.use(qcReportsRouter);
+qcRouter.use(qcRecruitRouter);

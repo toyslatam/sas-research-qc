@@ -13,7 +13,17 @@ import { moduleProjectsRouter } from './routes/moduleProjects';
 import { moduleProposalsRouter } from './routes/moduleProposals';
 import { projectsRouter } from './routes/projects';
 import { qcRouter } from './routes/qc';
+import { qcRecruitGmailCallbackRouter } from './routes/qc/recruit';
 import { requireQcAuth } from './middleware/qcAuth';
+
+// Una promesa rechazada sin `.catch` en cualquier ruta tumba TODO el proceso
+// bajo Node por defecto. Se registra y se sigue sirviendo en vez de caerse.
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+});
 
 const app = express();
 
@@ -76,6 +86,9 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/module-projects', moduleProjectsRouter);
 app.use('/api/module-proposals', moduleProposalsRouter);
 app.use('/api/configured-reports', configuredReportsRouter);
+// Callback de OAuth de Google: Google redirige el navegador sin JWT, así que
+// se monta ANTES del middleware requireQcAuth y solo responde en /callback.
+app.use('/api/qc/recruit/gmail', qcRecruitGmailCallbackRouter);
 app.use('/api/qc', requireQcAuth, qcRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/api/dashboard', dashboardRouter);

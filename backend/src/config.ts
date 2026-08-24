@@ -31,6 +31,14 @@ export const config = {
     clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
     privateKey: (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
   },
+  googleOAuth: {
+    clientId: process.env.GOOGLE_OAUTH_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_OAUTH_CLIENT_SECRET || '',
+    redirectUri:
+      process.env.GOOGLE_OAUTH_REDIRECT_URI ||
+      'http://localhost:4001/api/qc/recruit/gmail/callback',
+  },
+  webAppUrl: process.env.WEB_APP_URL || 'http://localhost:3000',
   paths: {
     database: resolveProjectPath(process.env.DATABASE_PATH, 'data/whispper.db'),
     recordings: resolveProjectPath(process.env.RECORDINGS_DIR, 'recordings'),
