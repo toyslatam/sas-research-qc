@@ -14,6 +14,7 @@ import { moduleProposalsRouter } from './routes/moduleProposals';
 import { projectsRouter } from './routes/projects';
 import { qcRouter } from './routes/qc';
 import { qcRecruitGmailCallbackRouter } from './routes/qc/recruit';
+import { speakerRouter } from './routes/speaker';
 import { requireQcAuth } from './middleware/qcAuth';
 
 // Una promesa rechazada sin `.catch` en cualquier ruta tumba TODO el proceso
@@ -90,6 +91,9 @@ app.use('/api/configured-reports', configuredReportsRouter);
 // se monta ANTES del middleware requireQcAuth y solo responde en /callback.
 app.use('/api/qc/recruit/gmail', qcRecruitGmailCallbackRouter);
 app.use('/api/qc', requireQcAuth, qcRouter);
+// Reconocimiento de hablante (Fase 1, aislado). Si el microservicio Python
+// está apagado, sus endpoints responden 503 y el resto del API no se afecta.
+app.use('/api/speaker', speakerRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/final-analysis', finalAnalysisRouter);

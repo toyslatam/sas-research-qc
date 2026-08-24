@@ -39,6 +39,14 @@ export const config = {
       'http://localhost:4001/api/qc/recruit/gmail/callback',
   },
   webAppUrl: process.env.WEB_APP_URL || 'http://localhost:3000',
+  // Microservicio Python de reconocimiento de hablante. Si la URL no está
+  // configurada, la función queda deshabilitada y el resto del backend
+  // (Whispper, transcripción, QC) funciona exactamente igual.
+  speakerService: {
+    url: process.env.SPEAKER_SERVICE_URL || '',
+    enabled: !!process.env.SPEAKER_SERVICE_URL,
+    timeoutMs: parseInt(process.env.SPEAKER_SERVICE_TIMEOUT_MS || '120000', 10),
+  },
   paths: {
     database: resolveProjectPath(process.env.DATABASE_PATH, 'data/whispper.db'),
     recordings: resolveProjectPath(process.env.RECORDINGS_DIR, 'recordings'),
