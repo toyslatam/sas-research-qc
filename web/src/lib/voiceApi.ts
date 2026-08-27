@@ -80,16 +80,32 @@ export function createVoiceOrg(name: string): Promise<VoiceOrg> {
   return req('/api/voice/orgs', { method: 'POST', headers: jsonHeaders, body: JSON.stringify({ name }) });
 }
 
-export function addVoiceMember(
+export interface VoiceMember {
+  id: number;
+  user_id: string;
+  role: 'admin' | 'encuestador';
+  email: string | null;
+  created_at: string;
+}
+
+export function listVoiceMembers(orgId: string): Promise<VoiceMember[]> {
+  return req(`/api/voice/orgs/${orgId}/members`);
+}
+
+export function addVoiceMemberByEmail(
   orgId: string,
-  userId: string,
+  email: string,
   role: 'admin' | 'encuestador',
-): Promise<unknown> {
+): Promise<VoiceMember> {
   return req(`/api/voice/orgs/${orgId}/members`, {
     method: 'POST',
     headers: jsonHeaders,
-    body: JSON.stringify({ user_id: userId, role }),
+    body: JSON.stringify({ email, role }),
   });
+}
+
+export function removeVoiceMember(orgId: string, memberUserId: string): Promise<void> {
+  return req(`/api/voice/orgs/${orgId}/members/${memberUserId}`, { method: 'DELETE' });
 }
 
 export function listVoiceRecordings(orgId: string): Promise<VoiceRecording[]> {

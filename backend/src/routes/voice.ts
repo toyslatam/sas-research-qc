@@ -53,6 +53,29 @@ async function memberRole(userId: string, orgId: string): Promise<Role | null> {
   return (data?.role as Role | undefined) ?? null;
 }
 
+/**
+ * Resuelve un correo a su user_id de Supabase Auth. La persona debe tener una
+ * cuenta (haberse registrado/iniciado sesión al menos una vez). GoTrue no
+ * filtra por email, así que se pagina y se busca.
+ */
+async function findUserIdByEmail(email: string): Promise<string | null> {
+  const target = email.trim().toLowerCase();
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw error;
+    const found = data.users.find((u) => (u.email ?? '').toLowerCase() === target);
+    if (found) return found.id;
+    if (data.users.length < 200) break;
+  }
+  return null;
+}
+
+async function emailForUser(userId: string | null): Promise<string | null> {
+  if (!userId) return null;
+  const { data } = await supabase.auth.admin.getUserById(userId);
+  return data?.user?.email ?? null;
+}
+
 // ── Organizaciones ─────────────────────────────────────────────────────────
 
 // Crear org: el creador queda como admin.
@@ -108,7 +131,34 @@ router.get('/orgs', async (req, res) => {
   }
 });
 
-// Admin agrega un miembro (por user_id de Supabase Auth) con un rol.
+// Listar miembros de la org con su correo y rol (solo admin).
+router.get('/orgs/:orgId/members', async (req, res) => {
+  try {
+    const userId = req.authUserId ?? '';
+    const { orgId } = req.params;
+    if ((await memberRole(userId, orgId)) !== 'admin') {
+      res.status(403).json({ error: 'Solo un admin puede ver los miembros' });
+      return;
+    }
+    const { data: members, error } = await supabase
+      .from('speaker_org_members')
+      .select('id, user_id, role, created_at')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    const withEmail = await Promise.all(
+      (members ?? []).map(async (m) => ({
+        ...m,
+        email: await emailForUser(m.user_id as string),
+      })),
+    );
+    res.json(withEmail);
+  } catch (err) {
+    res.status(500).json({ error: errMsg(err) });
+  }
+});
+
+// Admin agrega un miembro POR CORREO (o user_id) con un rol.
 router.post('/orgs/:orgId/members', async (req, res) => {
   try {
     const userId = req.authUserId ?? '';
@@ -117,19 +167,55 @@ router.post('/orgs/:orgId/members', async (req, res) => {
       res.status(403).json({ error: 'Solo un admin puede agregar miembros' });
       return;
     }
-    const memberUserId = typeof req.body?.user_id === 'string' ? req.body.user_id : '';
     const role: Role = req.body?.role === 'admin' ? 'admin' : 'encuestador';
+    let memberUserId = typeof req.body?.user_id === 'string' ? req.body.user_id.trim() : '';
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    if (!memberUserId && email) {
+      const resolved = await findUserIdByEmail(email);
+      if (!resolved) {
+        res.status(404).json({
+          error: `No hay una cuenta con el correo ${email}. La persona debe registrarse e iniciar sesión al menos una vez.`,
+        });
+        return;
+      }
+      memberUserId = resolved;
+    }
     if (!memberUserId) {
-      res.status(400).json({ error: 'user_id es requerido' });
+      res.status(400).json({ error: 'email (o user_id) es requerido' });
       return;
     }
     const { data, error } = await supabase
       .from('speaker_org_members')
       .upsert({ org_id: orgId, user_id: memberUserId, role }, { onConflict: 'org_id,user_id' })
-      .select('*')
+      .select('id, user_id, role, created_at')
       .single();
     if (error) throw error;
-    res.status(201).json(data);
+    res.status(201).json({ ...data, email: await emailForUser(memberUserId) });
+  } catch (err) {
+    res.status(500).json({ error: errMsg(err) });
+  }
+});
+
+// Admin quita un miembro. No puede quitarse a sí mismo (evita quedarse sin admin).
+router.delete('/orgs/:orgId/members/:memberUserId', async (req, res) => {
+  try {
+    const userId = req.authUserId ?? '';
+    const { orgId, memberUserId } = req.params;
+    if ((await memberRole(userId, orgId)) !== 'admin') {
+      res.status(403).json({ error: 'Solo un admin puede quitar miembros' });
+      return;
+    }
+    if (memberUserId === userId) {
+      res.status(400).json({ error: 'No puedes quitarte a ti mismo' });
+      return;
+    }
+    const { error } = await supabase
+      .from('speaker_org_members')
+      .delete()
+      .eq('org_id', orgId)
+      .eq('user_id', memberUserId);
+    if (error) throw error;
+    res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: errMsg(err) });
   }

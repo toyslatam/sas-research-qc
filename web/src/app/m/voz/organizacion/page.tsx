@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
-  addVoiceMember,
+  addVoiceMemberByEmail,
   createVoiceOrg,
+  listVoiceMembers,
   listVoiceOrgs,
+  removeVoiceMember,
+  type VoiceMember,
   type VoiceOrg,
 } from '@/lib/voiceApi';
 import { getStoredVoiceOrgId, setStoredVoiceOrgId } from '@/modules/voice/lib/activeOrg';
@@ -18,8 +21,9 @@ export default function VoiceOrganizacionPage() {
   const [orgs, setOrgs] = useState<VoiceOrg[]>([]);
   const [activeId, setActiveId] = useState<string>('');
   const [newName, setNewName] = useState('');
-  const [memberUserId, setMemberUserId] = useState('');
+  const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState<'encuestador' | 'admin'>('encuestador');
+  const [members, setMembers] = useState<VoiceMember[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -39,9 +43,26 @@ export default function VoiceOrganizacionPage() {
     }
   }, []);
 
+  const loadMembers = useCallback(async (orgId: string, role?: string) => {
+    if (!orgId || role !== 'admin') {
+      setMembers([]);
+      return;
+    }
+    try {
+      setMembers(await listVoiceMembers(orgId));
+    } catch {
+      setMembers([]);
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const active = orgs.find((o) => o.id === activeId);
+    loadMembers(activeId, active?.role);
+  }, [activeId, orgs, loadMembers]);
 
   async function handleCreate() {
     if (!newName.trim()) return;
@@ -63,18 +84,30 @@ export default function VoiceOrganizacionPage() {
   }
 
   async function handleAddMember() {
-    if (!activeId || !memberUserId.trim()) return;
+    if (!activeId || !memberEmail.trim()) return;
     setBusy(true);
     setError(null);
     setMsg(null);
     try {
-      await addVoiceMember(activeId, memberUserId.trim(), memberRole);
-      setMemberUserId('');
+      await addVoiceMemberByEmail(activeId, memberEmail.trim(), memberRole);
+      setMemberEmail('');
       setMsg('Miembro agregado.');
+      await loadMembers(activeId, 'admin');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo agregar');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRemoveMember(userId: string) {
+    setError(null);
+    setMsg(null);
+    try {
+      await removeVoiceMember(activeId, userId);
+      await loadMembers(activeId, 'admin');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo quitar');
     }
   }
 
@@ -140,18 +173,20 @@ export default function VoiceOrganizacionPage() {
       {isAdmin && (
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/20 p-5 space-y-4">
           <div>
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Agregar miembro</h2>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Miembros</h2>
             <p className="text-xs text-[var(--text-muted)] mt-1">
-              Se agrega por el <strong>ID de usuario</strong> de la cuenta (Supabase Auth). El encuestador debe
-              haber iniciado sesión al menos una vez.
+              Agrega encuestadores o admins por su <strong>correo</strong>. La persona debe haberse registrado
+              e iniciado sesión en la plataforma al menos una vez.
             </p>
           </div>
+
           <div className="flex items-center gap-3 flex-wrap">
             <input
-              value={memberUserId}
-              onChange={(e) => setMemberUserId(e.target.value)}
-              placeholder="user_id (UUID)"
-              className={`${inputClass} flex-1 min-w-[220px] font-mono text-xs`}
+              type="email"
+              value={memberEmail}
+              onChange={(e) => setMemberEmail(e.target.value)}
+              placeholder="correo@ejemplo.com"
+              className={`${inputClass} flex-1 min-w-[220px]`}
             />
             <select
               value={memberRole}
@@ -161,10 +196,32 @@ export default function VoiceOrganizacionPage() {
               <option value="encuestador">Encuestador</option>
               <option value="admin">Admin</option>
             </select>
-            <button type="button" onClick={handleAddMember} disabled={busy || !memberUserId.trim()} className={btnClass}>
+            <button type="button" onClick={handleAddMember} disabled={busy || !memberEmail.trim()} className={btnClass}>
               Agregar
             </button>
           </div>
+
+          {members.length > 0 && (
+            <ul className="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] pt-1">
+              {members.map((m) => (
+                <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm text-[var(--text-primary)] truncate">
+                      {m.email ?? m.user_id}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">{m.role}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMember(m.user_id)}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-rose-500/30 text-rose-400/80 hover:text-rose-400"
+                  >
+                    Quitar
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
