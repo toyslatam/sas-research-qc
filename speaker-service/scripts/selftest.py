@@ -36,10 +36,13 @@ def main(paths: list[str]) -> None:
     vectors = []
     for p in paths:
         data = Path(p).read_bytes()
-        segment, used = select_reference_segment(data)
-        vec = model.embed(segment, settings.sample_rate)
+        seg = select_reference_segment(data)
+        vec = model.embed(seg.samples, settings.sample_rate)
         vectors.append((p, vec))
-        print(f"✓ {Path(p).name}: embedding dim={vec.shape[0]}, {used:.1f}s de voz usados")
+        print(
+            f"✓ {Path(p).name}: embedding dim={vec.shape[0]}, "
+            f"{seg.used_seconds:.1f}s usados [{seg.start_seconds:.1f}–{seg.end_seconds:.1f}]"
+        )
 
     print("\nSimilitud coseno entre pares:")
     print("-" * 60)

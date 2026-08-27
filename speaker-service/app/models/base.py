@@ -14,6 +14,7 @@ class EmbeddingModel(ABC):
     """
 
     name: str
+    version: str
     dim: int
 
     @abstractmethod

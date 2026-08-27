@@ -15,8 +15,11 @@ class EcapaEmbeddingModel(EmbeddingModel):
     aún no estén descargados.
     """
 
-    def __init__(self, model_name: str, dim: int) -> None:
+    def __init__(self, model_name: str, dim: int, version: str = "1") -> None:
         self.name = model_name
+        # Versión del embedding: cambia si se actualiza el modelo o el
+        # preprocesamiento, para saber qué embeddings hay que regenerar.
+        self.version = version
         self.dim = dim
         self._encoder = None  # type: ignore[var-annotated]
 

@@ -73,7 +73,10 @@ router.post('/embed', upload.single('file'), async (req, res) => {
         person_id: personId,
         embedding: toVectorLiteral(result.embedding),
         model_name: result.model_name,
+        model_version: result.model_version,
         duration_used: result.duration_used,
+        source_start_seconds: result.source_start_seconds,
+        source_end_seconds: result.source_end_seconds,
       })
       .select('id')
       .single();
@@ -84,8 +87,11 @@ router.post('/embed', upload.single('file'), async (req, res) => {
       recording_id: recordingId,
       person_id: personId,
       model_name: result.model_name,
+      model_version: result.model_version,
       dim: result.dim,
       duration_used: result.duration_used,
+      source_start_seconds: result.source_start_seconds,
+      source_end_seconds: result.source_end_seconds,
     });
   } catch (err) {
     handleErr(res, err);
@@ -112,11 +118,12 @@ router.post('/compare/:recordingId', async (req, res) => {
 
     const { data: others, error: othersErr } = await supabase
       .from('speaker_embeddings')
-      .select('recording_id, person_id, embedding')
+      .select('id, recording_id, person_id, embedding')
       .neq('recording_id', recordingId);
     if (othersErr) throw othersErr;
 
     const candidates: CompareCandidate[] = (others ?? []).map((row) => ({
+      embedding_id: row.id as number,
       person_id: row.person_id as string | null,
       recording_id: row.recording_id as string,
       embedding: parseVector(row.embedding),
@@ -135,6 +142,7 @@ router.post('/compare/:recordingId', async (req, res) => {
       await supabase.from('speaker_matches').insert(
         matches.map((m) => ({
           recording_id: recordingId,
+          matched_embedding_id: m.embedding_id,
           matched_person_id: m.person_id,
           matched_recording_id: m.recording_id,
           similarity_score: m.similarity_score,

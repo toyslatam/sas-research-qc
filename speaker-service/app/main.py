@@ -16,7 +16,9 @@ app = FastAPI(title="SAS Speaker Service", version="0.1.0")
 
 # Selección del modelo. Un solo punto de cambio: para usar otro modelo,
 # se implementa EmbeddingModel y se sustituye aquí.
-model: EmbeddingModel = EcapaEmbeddingModel(settings.model_name, settings.embedding_dim)
+model: EmbeddingModel = EcapaEmbeddingModel(
+    settings.model_name, settings.embedding_dim, settings.model_version
+)
 
 
 def confidence_for(score: float) -> str:
@@ -52,8 +54,11 @@ def health() -> dict:
 class EmbedResponse(BaseModel):
     embedding: list[float]
     model_name: str
+    model_version: str
     dim: int
     duration_used: float
+    source_start_seconds: float
+    source_end_seconds: float
     sample_rate: int
 
 
@@ -63,7 +68,7 @@ async def embed(file: UploadFile = File(...)) -> EmbedResponse:
     if not data:
         raise HTTPException(status_code=400, detail="Archivo de audio vacío")
     try:
-        segment, used = select_reference_segment(data)
+        seg = select_reference_segment(data)
     except AudioTooShortError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:  # formato ilegible, etc.
@@ -71,7 +76,7 @@ async def embed(file: UploadFile = File(...)) -> EmbedResponse:
         raise HTTPException(status_code=400, detail=f"Audio no procesable: {exc}") from exc
 
     try:
-        vector = model.embed(segment, settings.sample_rate)
+        vector = model.embed(seg.samples, settings.sample_rate)
     except Exception as exc:
         logger.exception("Falló la generación del embedding")
         raise HTTPException(status_code=500, detail=f"Error del modelo: {exc}") from exc
@@ -79,8 +84,11 @@ async def embed(file: UploadFile = File(...)) -> EmbedResponse:
     return EmbedResponse(
         embedding=vector.tolist(),
         model_name=model.name,
+        model_version=model.version,
         dim=model.dim,
-        duration_used=round(used, 2),
+        duration_used=round(seg.used_seconds, 2),
+        source_start_seconds=round(seg.start_seconds, 2),
+        source_end_seconds=round(seg.end_seconds, 2),
         sample_rate=settings.sample_rate,
     )
 
@@ -90,6 +98,7 @@ async def embed(file: UploadFile = File(...)) -> EmbedResponse:
 # consulta. En producción, la búsqueda masiva se hace en Postgres con pgvector;
 # este endpoint sirve para validar y para conjuntos pequeños.
 class Candidate(BaseModel):
+    embedding_id: Optional[int] = None
     person_id: Optional[str] = None
     recording_id: Optional[str] = None
     embedding: list[float]
@@ -102,6 +111,7 @@ class CompareRequest(BaseModel):
 
 
 class Match(BaseModel):
+    embedding_id: Optional[int]
     person_id: Optional[str]
     recording_id: Optional[str]
     similarity_score: float
@@ -122,6 +132,7 @@ def compare(req: CompareRequest) -> list[Match]:
     for rank, (cand, score) in enumerate(scored[: req.top_k], start=1):
         matches.append(
             Match(
+                embedding_id=cand.embedding_id,
                 person_id=cand.person_id,
                 recording_id=cand.recording_id,
                 similarity_score=round(score, 4),
