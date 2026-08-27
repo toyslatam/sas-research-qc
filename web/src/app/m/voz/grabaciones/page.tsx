@@ -164,7 +164,8 @@ export default function GrabacionesPage() {
                     </span>
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    #{rec.id} · {new Date(rec.created_at).toLocaleString()} · huella: {rec.status}
+                    #{rec.id} · {rec.surveyor_email ?? 'encuestador desconocido'} ·{' '}
+                    {new Date(rec.created_at).toLocaleString()} · huella: {rec.status}
                   </p>
                 </div>
                 {role === 'admin' && (

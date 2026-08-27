@@ -29,6 +29,7 @@ export interface VoiceRecording {
   review_notes: string;
   created_at: string;
   embedding_status?: string;
+  surveyor_email?: string | null;
 }
 
 export interface VoiceMatch {
