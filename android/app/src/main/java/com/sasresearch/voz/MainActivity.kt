@@ -18,6 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -30,6 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -42,11 +44,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// Paleta de marca (violeta), a juego con el módulo web "Verificación de Voz".
+private val VozColorScheme = lightColorScheme(
+    primary = Color(0xFF7C3AED),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFEDE9FE),
+    onPrimaryContainer = Color(0xFF3B0A99),
+    secondary = Color(0xFF6D28D9),
+    background = Color(0xFFFBFAFF),
+    surface = Color(0xFFFFFFFF),
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = VozColorScheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val session = remember { Session(this) }
                     var loggedIn by remember { mutableStateOf(session.isLoggedIn) }
