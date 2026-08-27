@@ -1,0 +1,4 @@
+<resources>
+    <!-- Tema base mínimo. Compose hace su propio theming en tiempo de ejecución. -->
+    <style name="Theme.SasVoz" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

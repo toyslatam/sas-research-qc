@@ -4,6 +4,7 @@ import {
   projectsModule,
 } from '@/modules/catalog/configs';
 import { qcModule } from '@/modules/qc/config';
+import { voiceModule } from '@/modules/voice/config';
 import type { ModuleConfig, ResolvedModule } from '@/platform/types/module';
 
 /**
@@ -16,6 +17,7 @@ export const moduleRegistry: ModuleConfig[] = [
   projectsModule,
   configuredReportsModule,
   qcModule,
+  voiceModule,
   // IA y Propuestas deshabilitados del launcher (rutas /m/ia y /m/propuestas siguen existiendo)
   // aiModule,
   // proposalsModule,
