@@ -19,12 +19,16 @@ export class SpeakerServiceUnavailable extends Error {
 export interface EmbedResult {
   embedding: number[];
   model_name: string;
+  model_version: string;
   dim: number;
   duration_used: number;
+  source_start_seconds: number;
+  source_end_seconds: number;
   sample_rate: number;
 }
 
 export interface SpeakerMatch {
+  embedding_id: number | null;
   person_id: string | null;
   recording_id: string | null;
   similarity_score: number;
@@ -33,6 +37,7 @@ export interface SpeakerMatch {
 }
 
 export interface CompareCandidate {
+  embedding_id?: number | null;
   person_id?: string | null;
   recording_id?: string | null;
   embedding: number[];

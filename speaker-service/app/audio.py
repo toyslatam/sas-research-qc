@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from typing import NamedTuple
 
 import numpy as np
 
@@ -67,11 +68,19 @@ def _voiced_mask(samples: np.ndarray, sr: int, frame_ms: int = 30) -> np.ndarray
     return energies >= thresh
 
 
-def select_reference_segment(data: bytes) -> tuple[np.ndarray, float]:
+class ReferenceSegment(NamedTuple):
+    samples: np.ndarray
+    used_seconds: float
+    start_seconds: float
+    end_seconds: float
+
+
+def select_reference_segment(data: bytes) -> ReferenceSegment:
     """
     De un audio largo, extrae hasta `target_seconds` de la región con más voz
-    continua. Devuelve (muestras, segundos_usados). Lanza AudioTooShortError si
-    no hay al menos `min_seconds` de voz.
+    continua. Devuelve el segmento y los offsets (inicio/fin, en segundos)
+    dentro del audio original. Lanza AudioTooShortError si no hay al menos
+    `min_seconds` de voz.
     """
     sr = settings.sample_rate
     samples = _load_mono(data, sr)
@@ -104,5 +113,10 @@ def select_reference_segment(data: bytes) -> tuple[np.ndarray, float]:
     end_sample = min(start_sample + max_samples, len(samples))
     segment = samples[start_sample:end_sample]
     used = len(segment) / sr
-    logger.info("Segmento de referencia: %.1fs (de %.1fs de voz continua)", used, voiced_sec)
-    return segment, used
+    start_sec = start_sample / sr
+    end_sec = end_sample / sr
+    logger.info(
+        "Segmento de referencia: %.1fs [%.1f–%.1f] (de %.1fs de voz continua)",
+        used, start_sec, end_sec, voiced_sec,
+    )
+    return ReferenceSegment(segment, used, start_sec, end_sec)

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     # Modelo de embedding. Intercambiable: ver app/models/.
     model_name: str = "speechbrain/spkrec-ecapa-voxceleb"
+    model_version: str = "1"  # subir si cambia el modelo o el preprocesamiento
     embedding_dim: int = 192  # ECAPA-TDNN
 
     # Selección del segmento de referencia dentro de un audio largo.
