@@ -318,7 +318,14 @@ router.get('/orgs/:orgId/recordings', async (req, res) => {
     if (role === 'encuestador') query = query.eq('surveyor_id', userId);
     const { data, error } = await query;
     if (error) throw error;
-    res.json(data ?? []);
+    // Enriquecer con el correo del encuestador (surveyor_id es solo un UUID).
+    const enriched = await Promise.all(
+      (data ?? []).map(async (r) => ({
+        ...r,
+        surveyor_email: await emailForUser(r.surveyor_id as string | null),
+      })),
+    );
+    res.json(enriched);
   } catch (err) {
     res.status(500).json({ error: errMsg(err) });
   }
