@@ -8,8 +8,7 @@ import {
   listQcOrganizations,
   listQcProjects,
   listQcReportExports,
-  qcReportCsvUrl,
-  qcReportJsonUrl,
+  downloadQcReport,
 } from '@/lib/api';
 import { getStoredQcOrgId, setStoredQcOrgId } from '@/modules/qc/lib/activeOrg';
 
@@ -154,18 +153,28 @@ export default function QcReportesPage() {
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a
-            href={qcReportCsvUrl(orgId, user.id, downloadFilters())}
+          <button
+            type="button"
+            onClick={() =>
+              downloadQcReport(orgId, 'csv', downloadFilters()).catch((e) =>
+                setError(e instanceof Error ? e.message : 'No se pudo descargar el CSV'),
+              )
+            }
             className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-orange-300 hover:border-orange-500/40"
           >
             Descargar CSV
-          </a>
-          <a
-            href={qcReportJsonUrl(orgId, user.id, downloadFilters())}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              downloadQcReport(orgId, 'json', downloadFilters()).catch((e) =>
+                setError(e instanceof Error ? e.message : 'No se pudo descargar el JSON'),
+              )
+            }
             className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-orange-300 hover:border-orange-500/40"
           >
             Descargar JSON
-          </a>
+          </button>
         </div>
       </section>
 

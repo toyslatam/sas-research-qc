@@ -3,51 +3,66 @@
 import Link from 'next/link';
 import { Menu, Moon, Sun, Layers } from 'lucide-react';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTheme } from '@/platform/components/ThemeProvider';
-import { resolveModules } from '@/platform/registry';
+import { getModuleByPath, resolveModules } from '@/platform/registry';
 import { getModuleIcon } from '@/platform/utils/icons';
 import { UserMenu } from '../auth/UserMenu';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 export function PlatformNavbar() {
   const { resolvedTheme, toggleTheme } = useTheme();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const modules = resolveModules().filter((m) => m.enabled);
+  const activeModule = getModuleByPath(pathname);
+  const moduleNav = activeModule?.nav ?? [];
 
   return (
     <>
-      <header className="sticky top-0 z-30 h-[52px] border-b border-[var(--border-subtle)] bg-[var(--bg-navbar)] backdrop-blur-xl">
+      <header className="sticky top-0 z-30 h-[52px] border-b border-border bg-card/90 backdrop-blur-xl shadow-soft">
         <div className="flex items-center h-full px-4 gap-3">
-          <button
+          <Button
             type="button"
-            className="lg:hidden p-2 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)]"
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Menú"
           >
             <Menu className="w-5 h-5" />
-          </button>
+          </Button>
 
           <Link href="/" className="lg:hidden flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center">
-              <Layers className="w-4 h-4 text-white" strokeWidth={2.5} />
+            <div className="w-7 h-7 rounded-xl bg-primary flex items-center justify-center">
+              <Layers className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
             </div>
-            <span className="font-bold text-sm text-gradient">SAS RESEARCH</span>
+            <span className="font-bold text-sm text-foreground">SAS RESEARCH</span>
           </Link>
+
+          {activeModule && (
+            <p className="hidden md:block text-sm text-muted-foreground truncate">
+              {activeModule.name}
+            </p>
+          )}
 
           <div className="flex-1" />
 
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] text-emerald-400 font-medium">Online</span>
-          </div>
+          <Badge variant="success" className="hidden sm:inline-flex gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+            Online
+          </Badge>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all"
             aria-label="Cambiar tema"
           >
             {resolvedTheme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
+          </Button>
 
           <UserMenu />
         </div>
@@ -57,19 +72,19 @@ export function PlatformNavbar() {
         <div className="lg:hidden fixed inset-0 z-40">
           <button
             type="button"
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-slate-900/50"
             onClick={() => setMobileOpen(false)}
             aria-label="Cerrar menú"
           />
-          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-[var(--bg-sidebar)] border-r border-[var(--border-subtle)] p-4 overflow-y-auto">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
+          <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-card border-r border-border p-4 overflow-y-auto shadow-soft-lg">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Módulos
             </p>
             <div className="space-y-1">
               <Link
                 href="/"
                 onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                className="block px-3 py-2 rounded-2xl text-sm text-foreground hover:bg-muted"
               >
                 Inicio
               </Link>
@@ -80,7 +95,7 @@ export function PlatformNavbar() {
                     key={module.id}
                     href={module.href}
                     onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                    className="flex items-center gap-2 px-3 py-2 rounded-2xl text-sm text-foreground hover:bg-muted"
                   >
                     <Icon className="w-4 h-4" />
                     {module.name}
@@ -88,6 +103,30 @@ export function PlatformNavbar() {
                 );
               })}
             </div>
+
+            {activeModule && moduleNav.length > 0 && (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">
+                  {activeModule.name}
+                </p>
+                <div className="space-y-1">
+                  {moduleNav.map(({ path, label, icon }) => {
+                    const Icon = getModuleIcon(icon);
+                    return (
+                      <Link
+                        key={path}
+                        href={`${activeModule.basePath}/${path}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-2xl text-sm text-foreground hover:bg-muted"
+                      >
+                        <Icon className="w-4 h-4" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

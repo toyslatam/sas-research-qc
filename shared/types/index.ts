@@ -762,3 +762,104 @@ export interface QcReportExportLog {
   row_count: number;
   created_at: string;
 }
+
+// ── QC-12: Seguimiento Encuestadores (reclutamiento de campo) ──────────────
+
+export type QcRecruitPrioridad = 'alta' | 'media' | 'baja';
+
+export interface QcRecruitMunicipio {
+  id: number;
+  org_id: string;
+  nombre: string;
+  departamento: string;
+  zona: string;
+  prioridad: QcRecruitPrioridad;
+  meta: number;
+  created_at: string;
+  updated_at: string;
+  /** Enriquecido por API */
+  activos_count?: number;
+}
+
+export type QcRecruitFuente = 'indeed' | 'computrabajo' | 'referido' | 'otro';
+
+export type QcRecruitEtapa =
+  | 'nuevo'
+  | 'contactado'
+  | 'interesado'
+  | 'en_activacion'
+  | 'activo'
+  | 'inactivo';
+
+export interface QcRecruitCandidate {
+  id: number;
+  org_id: string;
+  nombre: string;
+  celular: string;
+  email: string;
+  municipio_id: number | null;
+  fuente: QcRecruitFuente;
+  etapa: QcRecruitEtapa;
+  notas: string;
+  created_at: string;
+  updated_at: string;
+  /** Enriquecido por API */
+  municipio_nombre?: string | null;
+}
+
+export interface QcRecruitContacto {
+  id: number;
+  org_id: string;
+  candidate_id: number;
+  actor_id: string | null;
+  etapa_anterior: QcRecruitEtapa | null;
+  etapa_nueva: QcRecruitEtapa | null;
+  comentario: string;
+  created_at: string;
+  /** Enriquecido por API */
+  actor_email?: string | null;
+}
+
+export type QcRecruitPortal = 'indeed' | 'computrabajo' | 'otro';
+
+export type QcRecruitPublicacionEstado = 'activa' | 'pausada' | 'cerrada';
+
+export interface QcRecruitPublicacion {
+  id: number;
+  org_id: string;
+  titulo: string;
+  portal: QcRecruitPortal;
+  municipio_id: number | null;
+  fecha_publicacion: string | null;
+  vistas: number;
+  postulaciones: number;
+  estado: QcRecruitPublicacionEstado;
+  created_at: string;
+  updated_at: string;
+  /** Enriquecido por API */
+  municipio_nombre?: string | null;
+}
+
+export type QcRecruitImportSource = 'csv' | 'gmail';
+export type QcRecruitImportStatus = 'success' | 'error' | 'partial';
+
+export interface QcRecruitImportRun {
+  id: number;
+  org_id: string;
+  actor_id: string | null;
+  source: QcRecruitImportSource;
+  status: QcRecruitImportStatus;
+  created_count: number;
+  duplicate_count: number;
+  error_count: number;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface QcRecruitImportRow {
+  nombre: string;
+  celular: string;
+  email?: string;
+  municipio?: string;
+  fuente?: QcRecruitFuente;
+}

@@ -11,11 +11,12 @@ export const qcModule: ModuleConfig = {
   defaultPath: 'dashboard',
   status: 'active',
   permissions: ['qc:projects:read'],
-  itemCount: 11,
+  itemCount: 12,
   itemLabel: 'secciones',
   nav: [
     { path: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
     { path: 'encuestas', label: 'Encuestas', icon: 'ClipboardList' },
+    { path: 'encuestadores', label: 'Encuestadores', icon: 'UserSearch' },
     { path: 'reglas', label: 'Reglas', icon: 'SlidersHorizontal' },
     { path: 'reportes', label: 'Reportes', icon: 'FileSpreadsheet' },
     { path: 'integraciones', label: 'Integraciones', icon: 'Plug' },

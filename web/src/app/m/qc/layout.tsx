@@ -1,11 +1,6 @@
 import type { ReactNode } from 'react';
-import { QcModuleNav } from '@/modules/qc/components/QcModuleNav';
 
+/** El menú del módulo vive en el sidebar lateral de la plataforma. */
 export default function QcLayout({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <QcModuleNav />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

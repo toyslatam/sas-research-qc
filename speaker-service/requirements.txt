@@ -1,0 +1,20 @@
+# Microservicio de embeddings de voz. Independiente del backend Node.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+pydantic-settings==2.7.1
+numpy==2.2.1
+# Decodificación de audio. soundfile (libsndfile incluido) cubre WAV/FLAC/OGG
+# sin dependencias del sistema. Los formatos comprimidos del teléfono
+# (m4a/aac/mp3) requieren además ffmpeg instalado (ver README/Dockerfile).
+soundfile==0.13.1
+# Modelo de speaker embedding (ECAPA-TDNN). torch + torchaudio son pesados
+# (~2 GB) pero corren en CPU y sin costo de API.
+torch==2.5.1
+torchaudio==2.5.1
+speechbrain==1.0.2
+# speechbrain lo importa pero no lo declara como dependencia directa.
+requests==2.32.3
+# speechbrain 1.0.2 usa use_auth_token, eliminado en huggingface_hub 1.x.
+# Se fija a una versión 0.x compatible para que la descarga del modelo funcione.
+huggingface_hub==0.25.2

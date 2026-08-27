@@ -58,6 +58,13 @@ import type {
   QcReportExportLog,
   QcReportSummary,
   QcReportSurveyRow,
+  QcRecruitCandidate,
+  QcRecruitContacto,
+  QcRecruitEtapa,
+  QcRecruitImportRow,
+  QcRecruitImportRun,
+  QcRecruitMunicipio,
+  QcRecruitPublicacion,
   Question,
   ReportRunStatus,
 } from '@whispper/shared';
@@ -3695,5 +3702,615 @@ export const qcRepo = {
       row_count: (row.row_count as number) ?? 0,
       created_at: row.created_at as string,
     }));
+  },
+
+  // ── QC-12: Seguimiento Encuestadores ─────────────────────────────────────
+
+  mapRecruitMunicipio(row: Record<string, unknown>): QcRecruitMunicipio {
+    return {
+      id: row.id as number,
+      org_id: row.org_id as string,
+      nombre: row.nombre as string,
+      departamento: (row.departamento as string) ?? '',
+      zona: (row.zona as string) ?? '',
+      prioridad: row.prioridad as QcRecruitMunicipio['prioridad'],
+      meta: (row.meta as number) ?? 0,
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+    };
+  },
+
+  async listRecruitMunicipios(orgId: string): Promise<QcRecruitMunicipio[]> {
+    const { data, error } = await supabase
+      .from('qc_recruit_municipios')
+      .select('*')
+      .eq('org_id', orgId)
+      .order('nombre', { ascending: true });
+    if (error) throw error;
+    const municipios = (data ?? []).map((row) =>
+      this.mapRecruitMunicipio(row as Record<string, unknown>),
+    );
+    if (municipios.length === 0) return municipios;
+
+    const { data: activos, error: activosErr } = await supabase
+      .from('qc_recruit_candidates')
+      .select('municipio_id')
+      .eq('org_id', orgId)
+      .eq('etapa', 'activo');
+    if (activosErr) throw activosErr;
+    const counts = new Map<number, number>();
+    for (const row of activos ?? []) {
+      const id = row.municipio_id as number | null;
+      if (id == null) continue;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return municipios.map((m) => ({ ...m, activos_count: counts.get(m.id) ?? 0 }));
+  },
+
+  async createRecruitMunicipio(
+    orgId: string,
+    input: {
+      nombre: string;
+      departamento?: string;
+      zona?: string;
+      prioridad?: QcRecruitMunicipio['prioridad'];
+      meta?: number;
+    },
+  ): Promise<QcRecruitMunicipio> {
+    const { data, error } = await supabase
+      .from('qc_recruit_municipios')
+      .insert({
+        org_id: orgId,
+        nombre: input.nombre,
+        departamento: input.departamento ?? '',
+        zona: input.zona ?? '',
+        prioridad: input.prioridad ?? 'media',
+        meta: input.meta ?? 0,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return this.mapRecruitMunicipio(data as Record<string, unknown>);
+  },
+
+  async updateRecruitMunicipio(
+    orgId: string,
+    id: number,
+    patch: Partial<{
+      nombre: string;
+      departamento: string;
+      zona: string;
+      prioridad: QcRecruitMunicipio['prioridad'];
+      meta: number;
+    }>,
+  ): Promise<QcRecruitMunicipio | undefined> {
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.nombre !== undefined) payload.nombre = patch.nombre;
+    if (patch.departamento !== undefined) payload.departamento = patch.departamento;
+    if (patch.zona !== undefined) payload.zona = patch.zona;
+    if (patch.prioridad !== undefined) payload.prioridad = patch.prioridad;
+    if (patch.meta !== undefined) payload.meta = patch.meta;
+
+    const { data, error } = await supabase
+      .from('qc_recruit_municipios')
+      .update(payload)
+      .eq('id', id)
+      .eq('org_id', orgId)
+      .select('*')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return undefined;
+    return this.mapRecruitMunicipio(data as Record<string, unknown>);
+  },
+
+  async deleteRecruitMunicipio(orgId: string, id: number): Promise<boolean> {
+    const { error, count } = await supabase
+      .from('qc_recruit_municipios')
+      .delete({ count: 'exact' })
+      .eq('id', id)
+      .eq('org_id', orgId);
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  },
+
+  async resolveRecruitMunicipioId(
+    orgId: string,
+    nombre: string,
+    cache: Map<string, number | null>,
+  ): Promise<number | null> {
+    const key = nombre.trim().toLowerCase();
+    if (!key) return null;
+    if (cache.has(key)) return cache.get(key) ?? null;
+
+    const { data: existing } = await supabase
+      .from('qc_recruit_municipios')
+      .select('id, nombre')
+      .eq('org_id', orgId)
+      .ilike('nombre', nombre.trim())
+      .maybeSingle();
+    if (existing) {
+      cache.set(key, existing.id as number);
+      return existing.id as number;
+    }
+
+    const { data: created, error } = await supabase
+      .from('qc_recruit_municipios')
+      .insert({ org_id: orgId, nombre: nombre.trim(), prioridad: 'media', meta: 0 })
+      .select('id')
+      .single();
+    if (error) {
+      cache.set(key, null);
+      return null;
+    }
+    cache.set(key, created.id as number);
+    return created.id as number;
+  },
+
+  mapRecruitCandidate(row: Record<string, unknown>): QcRecruitCandidate {
+    const municipio = row.municipio as { nombre?: string } | null | undefined;
+    return {
+      id: row.id as number,
+      org_id: row.org_id as string,
+      nombre: row.nombre as string,
+      celular: row.celular as string,
+      email: (row.email as string) ?? '',
+      municipio_id: (row.municipio_id as number | null) ?? null,
+      fuente: row.fuente as QcRecruitCandidate['fuente'],
+      etapa: row.etapa as QcRecruitEtapa,
+      notas: (row.notas as string) ?? '',
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+      municipio_nombre: municipio?.nombre ?? null,
+    };
+  },
+
+  async listRecruitCandidates(
+    orgId: string,
+    opts?: { search?: string; etapa?: QcRecruitEtapa; municipioId?: number },
+  ): Promise<QcRecruitCandidate[]> {
+    let query = supabase
+      .from('qc_recruit_candidates')
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .eq('org_id', orgId)
+      .order('updated_at', { ascending: false });
+
+    if (opts?.etapa) query = query.eq('etapa', opts.etapa);
+    if (opts?.municipioId) query = query.eq('municipio_id', opts.municipioId);
+    if (opts?.search?.trim()) {
+      const term = `%${opts.search.trim().replace(/[%_,]/g, ' ')}%`;
+      query = query.or(`nombre.ilike.${term},celular.ilike.${term},email.ilike.${term}`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map((row) => this.mapRecruitCandidate(row as Record<string, unknown>));
+  },
+
+  async createRecruitCandidate(
+    orgId: string,
+    input: {
+      nombre: string;
+      celular: string;
+      email?: string;
+      municipio_id?: number | null;
+      fuente?: QcRecruitCandidate['fuente'];
+      notas?: string;
+      actorId?: string | null;
+    },
+  ): Promise<QcRecruitCandidate> {
+    const { data, error } = await supabase
+      .from('qc_recruit_candidates')
+      .insert({
+        org_id: orgId,
+        nombre: input.nombre,
+        celular: input.celular,
+        email: input.email ?? '',
+        municipio_id: input.municipio_id ?? null,
+        fuente: input.fuente ?? 'otro',
+        etapa: 'nuevo',
+        notas: input.notas ?? '',
+      })
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .single();
+    if (error) {
+      if ((error as { code?: string }).code === '23505') {
+        throw new Error('Ya existe un candidato con ese celular en esta empresa');
+      }
+      throw error;
+    }
+    await this.writeAudit({
+      orgId,
+      actorId: input.actorId,
+      action: 'recruit.candidate.create',
+      entityType: 'qc_recruit_candidate',
+      entityId: String(data.id),
+      detail: `${input.nombre} · ${input.celular}`,
+    });
+    return this.mapRecruitCandidate(data as Record<string, unknown>);
+  },
+
+  async updateRecruitCandidate(
+    orgId: string,
+    id: number,
+    patch: Partial<{
+      nombre: string;
+      celular: string;
+      email: string;
+      municipio_id: number | null;
+      fuente: QcRecruitCandidate['fuente'];
+      notas: string;
+    }>,
+  ): Promise<QcRecruitCandidate | undefined> {
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.nombre !== undefined) payload.nombre = patch.nombre;
+    if (patch.celular !== undefined) payload.celular = patch.celular;
+    if (patch.email !== undefined) payload.email = patch.email;
+    if (patch.municipio_id !== undefined) payload.municipio_id = patch.municipio_id;
+    if (patch.fuente !== undefined) payload.fuente = patch.fuente;
+    if (patch.notas !== undefined) payload.notas = patch.notas;
+
+    const { data, error } = await supabase
+      .from('qc_recruit_candidates')
+      .update(payload)
+      .eq('id', id)
+      .eq('org_id', orgId)
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return undefined;
+    return this.mapRecruitCandidate(data as Record<string, unknown>);
+  },
+
+  async deleteRecruitCandidate(orgId: string, id: number): Promise<boolean> {
+    const { error, count } = await supabase
+      .from('qc_recruit_candidates')
+      .delete({ count: 'exact' })
+      .eq('id', id)
+      .eq('org_id', orgId);
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  },
+
+  mapRecruitContacto(row: Record<string, unknown>): QcRecruitContacto {
+    return {
+      id: row.id as number,
+      org_id: row.org_id as string,
+      candidate_id: row.candidate_id as number,
+      actor_id: (row.actor_id as string | null) ?? null,
+      etapa_anterior: (row.etapa_anterior as QcRecruitEtapa | null) ?? null,
+      etapa_nueva: (row.etapa_nueva as QcRecruitEtapa | null) ?? null,
+      comentario: (row.comentario as string) ?? '',
+      created_at: row.created_at as string,
+    };
+  },
+
+  async listRecruitContactos(orgId: string, candidateId: number): Promise<QcRecruitContacto[]> {
+    const { data, error } = await supabase
+      .from('qc_recruit_contactos')
+      .select('*')
+      .eq('org_id', orgId)
+      .eq('candidate_id', candidateId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => this.mapRecruitContacto(row as Record<string, unknown>));
+  },
+
+  async changeRecruitCandidateStage(
+    orgId: string,
+    candidateId: number,
+    input: { etapa: QcRecruitEtapa; comentario?: string; actorId?: string | null },
+  ): Promise<QcRecruitCandidate | undefined> {
+    const { data: current, error: currentErr } = await supabase
+      .from('qc_recruit_candidates')
+      .select('etapa')
+      .eq('id', candidateId)
+      .eq('org_id', orgId)
+      .maybeSingle();
+    if (currentErr) throw currentErr;
+    if (!current) return undefined;
+    const etapaAnterior = current.etapa as QcRecruitEtapa;
+
+    const { data, error } = await supabase
+      .from('qc_recruit_candidates')
+      .update({ etapa: input.etapa, updated_at: new Date().toISOString() })
+      .eq('id', candidateId)
+      .eq('org_id', orgId)
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return undefined;
+
+    await supabase.from('qc_recruit_contactos').insert({
+      org_id: orgId,
+      candidate_id: candidateId,
+      actor_id: input.actorId ?? null,
+      etapa_anterior: etapaAnterior,
+      etapa_nueva: input.etapa,
+      comentario: input.comentario ?? '',
+    });
+    await this.writeAudit({
+      orgId,
+      actorId: input.actorId,
+      action: 'recruit.candidate.stage_change',
+      entityType: 'qc_recruit_candidate',
+      entityId: String(candidateId),
+      detail: `${etapaAnterior} → ${input.etapa}${input.comentario ? `: ${input.comentario}` : ''}`,
+    });
+
+    return this.mapRecruitCandidate(data as Record<string, unknown>);
+  },
+
+  async addRecruitContactComment(
+    orgId: string,
+    candidateId: number,
+    input: { comentario: string; actorId?: string | null },
+  ): Promise<QcRecruitContacto> {
+    const { data: current } = await supabase
+      .from('qc_recruit_candidates')
+      .select('etapa')
+      .eq('id', candidateId)
+      .eq('org_id', orgId)
+      .maybeSingle();
+    const etapa = (current?.etapa as QcRecruitEtapa | undefined) ?? null;
+
+    const { data, error } = await supabase
+      .from('qc_recruit_contactos')
+      .insert({
+        org_id: orgId,
+        candidate_id: candidateId,
+        actor_id: input.actorId ?? null,
+        etapa_anterior: etapa,
+        etapa_nueva: etapa,
+        comentario: input.comentario,
+      })
+      .select('*')
+      .single();
+    if (error) throw error;
+    return this.mapRecruitContacto(data as Record<string, unknown>);
+  },
+
+  mapRecruitPublicacion(row: Record<string, unknown>): QcRecruitPublicacion {
+    const municipio = row.municipio as { nombre?: string } | null | undefined;
+    return {
+      id: row.id as number,
+      org_id: row.org_id as string,
+      titulo: row.titulo as string,
+      portal: row.portal as QcRecruitPublicacion['portal'],
+      municipio_id: (row.municipio_id as number | null) ?? null,
+      fecha_publicacion: (row.fecha_publicacion as string | null) ?? null,
+      vistas: (row.vistas as number) ?? 0,
+      postulaciones: (row.postulaciones as number) ?? 0,
+      estado: row.estado as QcRecruitPublicacion['estado'],
+      created_at: row.created_at as string,
+      updated_at: row.updated_at as string,
+      municipio_nombre: municipio?.nombre ?? null,
+    };
+  },
+
+  async listRecruitPublicaciones(orgId: string): Promise<QcRecruitPublicacion[]> {
+    const { data, error } = await supabase
+      .from('qc_recruit_publicaciones')
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .eq('org_id', orgId)
+      .order('fecha_publicacion', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row) => this.mapRecruitPublicacion(row as Record<string, unknown>));
+  },
+
+  async createRecruitPublicacion(
+    orgId: string,
+    input: {
+      titulo: string;
+      portal?: QcRecruitPublicacion['portal'];
+      municipio_id?: number | null;
+      fecha_publicacion?: string | null;
+      vistas?: number;
+      postulaciones?: number;
+      estado?: QcRecruitPublicacion['estado'];
+    },
+  ): Promise<QcRecruitPublicacion> {
+    const { data, error } = await supabase
+      .from('qc_recruit_publicaciones')
+      .insert({
+        org_id: orgId,
+        titulo: input.titulo,
+        portal: input.portal ?? 'indeed',
+        municipio_id: input.municipio_id ?? null,
+        fecha_publicacion: input.fecha_publicacion ?? null,
+        vistas: input.vistas ?? 0,
+        postulaciones: input.postulaciones ?? 0,
+        estado: input.estado ?? 'activa',
+      })
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .single();
+    if (error) throw error;
+    return this.mapRecruitPublicacion(data as Record<string, unknown>);
+  },
+
+  async updateRecruitPublicacion(
+    orgId: string,
+    id: number,
+    patch: Partial<{
+      titulo: string;
+      portal: QcRecruitPublicacion['portal'];
+      municipio_id: number | null;
+      fecha_publicacion: string | null;
+      vistas: number;
+      postulaciones: number;
+      estado: QcRecruitPublicacion['estado'];
+    }>,
+  ): Promise<QcRecruitPublicacion | undefined> {
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.titulo !== undefined) payload.titulo = patch.titulo;
+    if (patch.portal !== undefined) payload.portal = patch.portal;
+    if (patch.municipio_id !== undefined) payload.municipio_id = patch.municipio_id;
+    if (patch.fecha_publicacion !== undefined) payload.fecha_publicacion = patch.fecha_publicacion;
+    if (patch.vistas !== undefined) payload.vistas = patch.vistas;
+    if (patch.postulaciones !== undefined) payload.postulaciones = patch.postulaciones;
+    if (patch.estado !== undefined) payload.estado = patch.estado;
+
+    const { data, error } = await supabase
+      .from('qc_recruit_publicaciones')
+      .update(payload)
+      .eq('id', id)
+      .eq('org_id', orgId)
+      .select('*, municipio:qc_recruit_municipios(nombre)')
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return undefined;
+    return this.mapRecruitPublicacion(data as Record<string, unknown>);
+  },
+
+  async deleteRecruitPublicacion(orgId: string, id: number): Promise<boolean> {
+    const { error, count } = await supabase
+      .from('qc_recruit_publicaciones')
+      .delete({ count: 'exact' })
+      .eq('id', id)
+      .eq('org_id', orgId);
+    if (error) throw error;
+    return (count ?? 0) > 0;
+  },
+
+  async importRecruitCandidates(
+    orgId: string,
+    rows: QcRecruitImportRow[],
+    opts: { actorId?: string | null; source?: 'csv' | 'gmail' },
+  ): Promise<QcRecruitImportRun> {
+    let created = 0;
+    let duplicate = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+    const municipioCache = new Map<string, number | null>();
+
+    for (const row of rows) {
+      const nombre = row.nombre?.trim() ?? '';
+      const celular = row.celular?.trim() ?? '';
+      if (!nombre || !celular) {
+        errorCount++;
+        errors.push(`Fila inválida (falta nombre o celular): ${JSON.stringify(row)}`);
+        continue;
+      }
+      const municipioId = row.municipio
+        ? await this.resolveRecruitMunicipioId(orgId, row.municipio, municipioCache)
+        : null;
+
+      const { error } = await supabase.from('qc_recruit_candidates').insert({
+        org_id: orgId,
+        nombre,
+        celular,
+        email: row.email?.trim() ?? '',
+        municipio_id: municipioId,
+        fuente: row.fuente ?? 'otro',
+        etapa: 'nuevo',
+      });
+      if (error) {
+        if ((error as { code?: string }).code === '23505') {
+          duplicate++;
+        } else {
+          errorCount++;
+          errors.push(`${celular}: ${error.message}`);
+        }
+        continue;
+      }
+      created++;
+    }
+
+    const status: QcRecruitImportRun['status'] =
+      errorCount === 0 ? 'success' : created + duplicate > 0 ? 'partial' : 'error';
+
+    const { data, error: runError } = await supabase
+      .from('qc_recruit_import_runs')
+      .insert({
+        org_id: orgId,
+        actor_id: opts.actorId ?? null,
+        source: opts.source ?? 'csv',
+        status,
+        created_count: created,
+        duplicate_count: duplicate,
+        error_count: errorCount,
+        details: { total_rows: rows.length, errors: errors.slice(0, 20) },
+      })
+      .select('*')
+      .single();
+    if (runError) throw runError;
+
+    await this.writeAudit({
+      orgId,
+      actorId: opts.actorId,
+      action: 'recruit.import',
+      entityType: 'qc_recruit_import_run',
+      entityId: String(data.id),
+      detail: `${created} nuevos · ${duplicate} duplicados · ${errorCount} errores`,
+    });
+
+    return {
+      id: data.id as number,
+      org_id: data.org_id as string,
+      actor_id: (data.actor_id as string | null) ?? null,
+      source: data.source as QcRecruitImportRun['source'],
+      status: data.status as QcRecruitImportRun['status'],
+      created_count: data.created_count as number,
+      duplicate_count: data.duplicate_count as number,
+      error_count: data.error_count as number,
+      details: (data.details as Record<string, unknown>) ?? {},
+      created_at: data.created_at as string,
+    };
+  },
+
+  async listRecruitImportRuns(orgId: string, limit = 20): Promise<QcRecruitImportRun[]> {
+    const { data, error } = await supabase
+      .from('qc_recruit_import_runs')
+      .select('*')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      id: row.id as number,
+      org_id: row.org_id as string,
+      actor_id: (row.actor_id as string | null) ?? null,
+      source: row.source as QcRecruitImportRun['source'],
+      status: row.status as QcRecruitImportRun['status'],
+      created_count: row.created_count as number,
+      duplicate_count: row.duplicate_count as number,
+      error_count: row.error_count as number,
+      details: (row.details as Record<string, unknown>) ?? {},
+      created_at: row.created_at as string,
+    }));
+  },
+
+  async saveRecruitGmailConnection(
+    orgId: string,
+    input: { email: string; refreshToken: string; connectedBy: string },
+  ): Promise<void> {
+    const { error } = await supabase.from('qc_recruit_gmail_connections').upsert({
+      org_id: orgId,
+      email: input.email,
+      refresh_token: input.refreshToken,
+      connected_by: input.connectedBy,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+  },
+
+  async getRecruitGmailConnection(
+    orgId: string,
+  ): Promise<{ email: string; refresh_token: string } | undefined> {
+    const { data, error } = await supabase
+      .from('qc_recruit_gmail_connections')
+      .select('email, refresh_token')
+      .eq('org_id', orgId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return undefined;
+    return { email: data.email as string, refresh_token: data.refresh_token as string };
+  },
+
+  async deleteRecruitGmailConnection(orgId: string): Promise<void> {
+    const { error } = await supabase
+      .from('qc_recruit_gmail_connections')
+      .delete()
+      .eq('org_id', orgId);
+    if (error) throw error;
   },
 };

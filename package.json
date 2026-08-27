@@ -6,7 +6,8 @@
   "workspaces": [
     "backend",
     "web",
-    "shared"
+    "shared",
+    "automation"
   ],
   "scripts": {
     "dev:backend": "npm run dev -w backend",
